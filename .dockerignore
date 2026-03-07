@@ -1,0 +1,23 @@
+# Sicherheit: sensible Dateien ausschließen
+.env
+.env.*
+!.env.example
+
+# Docker-eigene Dateien (im Container nicht nötig)
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Entwicklung & Tools
+node_modules
+.claude
+*.md
+haushaltsbuch_prompt.md
+
+# Laufzeitdaten (liegen im Volume /data, nicht im Image)
+data/
+
+# OS & Editor
+.DS_Store
+.gitignore
+*.log

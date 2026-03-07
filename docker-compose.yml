@@ -1,0 +1,10 @@
+services:
+  haushaltsbuch:
+    build: .
+    ports:
+      - "8080:3000"
+    volumes:
+      - ./data:/data
+    env_file:
+      - .env
+    restart: unless-stopped

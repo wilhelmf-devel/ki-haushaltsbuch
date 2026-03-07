@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+
+# Environment & secrets
+.env
+.env.local
+.env.*.local
+
+# Runtime data (stored in Docker volume, not in repo)
+data/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+**/.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Claude Code project files
+.claude/

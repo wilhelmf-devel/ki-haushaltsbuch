@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <meta name="theme-color" content="#1976D2">
+  <meta name="description" content="Persönliches Haushaltsbuch – Belege per Foto erfassen">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Haushaltsbuch">
+  <title>Haushaltsbuch</title>
+  <link rel="manifest" href="/manifest.json">
+  <link rel="apple-touch-icon" href="/icons/icon-192.png">
+  <link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+  <div id="app">
+    <!-- Setup-Overlay beim ersten Start -->
+    <div id="setup-overlay" class="setup-overlay hidden">
+      <div class="setup-card">
+        <div class="setup-logo">🏠</div>
+        <h1>Willkommen beim Haushaltsbuch</h1>
+        <p>Lege deinen ersten Mandanten an, um zu starten.</p>
+        <div class="form-group">
+          <label for="setup-tenant-name">Name des Mandanten</label>
+          <input type="text" id="setup-tenant-name" placeholder="z.B. Deutschland" maxlength="50">
+        </div>
+        <button id="setup-btn" class="btn btn-primary btn-lg">Starten</button>
+      </div>
+    </div>
+
+    <!-- Haupt-Layout -->
+    <header class="app-header">
+      <div class="header-left">
+        <span class="app-logo">🏠</span>
+        <h1 class="app-title">Haushaltsbuch</h1>
+      </div>
+      <div class="header-right">
+        <div id="job-badge" class="job-badge hidden" title="Belege werden verarbeitet">
+          <span class="pulse"></span>
+          <span id="job-count">0</span>
+        </div>
+        <select id="tenant-select" class="tenant-select" aria-label="Mandant auswählen"></select>
+      </div>
+    </header>
+
+    <!-- View-Container -->
+    <main id="view-container" class="view-container"></main>
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav" role="navigation" aria-label="Hauptnavigation">
+      <button class="nav-item" data-view="dashboard" aria-label="Übersicht">
+        <span class="nav-icon">📊</span>
+        <span class="nav-label">Übersicht</span>
+      </button>
+      <button class="nav-item nav-capture" data-view="capture" aria-label="Erfassen">
+        <span class="nav-icon">➕</span>
+        <span class="nav-label">Erfassen</span>
+      </button>
+      <button class="nav-item" data-view="receipts" aria-label="Belege">
+        <span class="nav-icon">🧾</span>
+        <span class="nav-label">Belege</span>
+      </button>
+      <button class="nav-item" data-view="settings" aria-label="Einstellungen">
+        <span class="nav-icon">⚙️</span>
+        <span class="nav-label">Einstellungen</span>
+      </button>
+    </nav>
+  </div>
+
+  <!-- Toast-Container -->
+  <div id="toast-container" aria-live="polite" aria-atomic="true"></div>
+
+  <!-- Bild-Viewer Modal -->
+  <div id="image-viewer" class="image-viewer hidden" role="dialog" aria-label="Bild-Vollansicht">
+    <button class="image-viewer-close" id="image-viewer-close" aria-label="Schließen">✕</button>
+    <img id="image-viewer-img" alt="Beleg-Bild" draggable="false">
+  </div>
+
+  <script type="module" src="/js/app.js"></script>
+</body>
+</html>
