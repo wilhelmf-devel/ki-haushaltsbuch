@@ -4,6 +4,51 @@
 import { api } from '../api.js';
 import { zeigeToast } from '../app.js';
 
+// Verfügbare Modelle pro Provider
+const MODELLE = {
+  gemini: [
+    { value: 'gemini-2.5-flash',      label: 'Gemini 2.5 Flash (Standard)' },
+    { value: 'gemini-3.1-flash-lite', label: 'Gemini 3.1 Flash-Lite (Preview – schneller & günstiger)' },
+  ],
+  claude: [
+    { value: 'claude-haiku-4-5-20251001', label: 'Claude Haiku 4.5' },
+  ],
+  openai: [
+    { value: 'gpt-5-mini', label: 'GPT-5 Mini' },
+    { value: 'gpt-5-nano', label: 'GPT-5 Nano (schneller, für einfache Belege)' },
+  ],
+};
+
+// Key-Feld rendern: Badge wenn aus env, Input wenn aus DB oder nicht gesetzt
+function renderKeyField(id, source, placeholder) {
+  if (source === 'env') {
+    return `
+      <div class="key-env-badge" id="${id}-wrapper">
+        🔒 Via <code>.env</code> gesetzt – nicht änderbar
+      </div>
+      <input type="hidden" id="${id}" value="••••••••">
+    `;
+  }
+  return `
+    <input type="password" id="${id}"
+      value="${source === 'db' ? '••••••••' : ''}"
+      placeholder="${placeholder}"
+      autocomplete="new-password">
+  `;
+}
+
+// Modell-Dropdown rendern
+function renderModelSelect(id, provider, currentModel) {
+  const optionen = MODELLE[provider] || [];
+  return `
+    <select id="${id}">
+      ${optionen.map(m => `
+        <option value="${m.value}" ${currentModel === m.value ? 'selected' : ''}>${m.label}</option>
+      `).join('')}
+    </select>
+  `;
+}
+
 export async function renderSettings(container, tenantId, onTenantChange) {
   container.innerHTML = '<div class="loading-state"><div class="spinner"></div></div>';
 
@@ -21,6 +66,8 @@ export async function renderSettings(container, tenantId, onTenantChange) {
       if (!gruppenMap[g]) gruppenMap[g] = [];
       gruppenMap[g].push(k);
     }
+
+    const activeProvider = einstellungen.ai_provider || 'gemini';
 
     container.innerHTML = `
       <!-- Mandanten -->
@@ -50,22 +97,73 @@ export async function renderSettings(container, tenantId, onTenantChange) {
         <div class="card-header">
           <span class="card-title">🤖 KI-Einstellungen</span>
         </div>
+
         <div class="form-group">
-          <label>KI-Anbieter</label>
+          <label>Aktiver Provider</label>
           <select id="ai-provider">
-            <option value="gemini" ${einstellungen.ai_provider !== 'claude' ? 'selected' : ''}>Gemini 2.5 Flash (empfohlen)</option>
-            <option value="claude" ${einstellungen.ai_provider === 'claude' ? 'selected' : ''}>Claude Haiku 4.5</option>
+            <option value="gemini" ${activeProvider === 'gemini' ? 'selected' : ''}>Gemini</option>
+            <option value="claude" ${activeProvider === 'claude' ? 'selected' : ''}>Claude</option>
+            <option value="openai" ${activeProvider === 'openai' ? 'selected' : ''}>OpenAI</option>
           </select>
         </div>
-        <div class="form-group">
-          <label>Google Gemini API-Key</label>
-          <input type="password" id="gemini-key" value="${einstellungen.gemini_api_key || ''}" placeholder="Aus Google AI Studio">
+
+        <hr style="border:none;border-top:1px solid var(--border);margin:16px 0">
+
+        <!-- Gemini -->
+        <div class="provider-section ${activeProvider === 'gemini' ? 'provider-active' : ''}">
+          <div class="provider-label">
+            <span class="provider-name">Gemini</span>
+            ${activeProvider === 'gemini' ? '<span class="provider-badge">Aktiv</span>' : ''}
+          </div>
+          <div class="form-group">
+            <label>Modell</label>
+            ${renderModelSelect('gemini-model', 'gemini', einstellungen.gemini_model)}
+          </div>
+          <div class="form-group">
+            <label>API-Key <a href="https://aistudio.google.com/" target="_blank" class="key-hint">→ Google AI Studio</a></label>
+            ${renderKeyField('gemini-key', einstellungen.gemini_key_source, 'AI… (Google AI Studio)')}
+          </div>
         </div>
-        <div class="form-group">
-          <label>Anthropic API-Key</label>
-          <input type="password" id="anthropic-key" value="${einstellungen.anthropic_api_key || ''}" placeholder="sk-ant-...">
+
+        <hr style="border:none;border-top:1px solid var(--border);margin:16px 0">
+
+        <!-- Claude -->
+        <div class="provider-section ${activeProvider === 'claude' ? 'provider-active' : ''}">
+          <div class="provider-label">
+            <span class="provider-name">Claude</span>
+            ${activeProvider === 'claude' ? '<span class="provider-badge">Aktiv</span>' : ''}
+          </div>
+          <div class="form-group">
+            <label>Modell</label>
+            ${renderModelSelect('claude-model', 'claude', einstellungen.claude_model)}
+          </div>
+          <div class="form-group">
+            <label>API-Key <a href="https://console.anthropic.com/" target="_blank" class="key-hint">→ Anthropic Console</a></label>
+            ${renderKeyField('anthropic-key', einstellungen.claude_key_source, 'sk-ant-…')}
+          </div>
         </div>
-        <button class="btn btn-primary btn-sm" id="save-settings-btn">Einstellungen speichern</button>
+
+        <hr style="border:none;border-top:1px solid var(--border);margin:16px 0">
+
+        <!-- OpenAI -->
+        <div class="provider-section ${activeProvider === 'openai' ? 'provider-active' : ''}">
+          <div class="provider-label">
+            <span class="provider-name">OpenAI</span>
+            ${activeProvider === 'openai' ? '<span class="provider-badge">Aktiv</span>' : ''}
+          </div>
+          <div class="form-group">
+            <label>Modell</label>
+            ${renderModelSelect('openai-model', 'openai', einstellungen.openai_model)}
+          </div>
+          <div class="form-group">
+            <label>API-Key <a href="https://platform.openai.com/api-keys" target="_blank" class="key-hint">→ OpenAI Platform</a></label>
+            ${renderKeyField('openai-key', einstellungen.openai_key_source, 'sk-…')}
+          </div>
+        </div>
+
+        <div style="margin-top:16px;text-align:right">
+          <button class="btn btn-primary" id="save-settings-btn">Einstellungen speichern</button>
+        </div>
       </div>
 
       <!-- Kategorien -->
@@ -75,7 +173,6 @@ export async function renderSettings(container, tenantId, onTenantChange) {
           <button class="btn btn-primary btn-sm" id="new-cat-btn">+ Neu</button>
         </div>
 
-        <!-- Neue Kategorie Formular -->
         <form id="new-cat-form" class="hidden" style="margin-bottom:16px;background:var(--bg);padding:12px;border-radius:var(--radius-sm)">
           <div class="form-row">
             <div class="form-group">
@@ -106,7 +203,6 @@ export async function renderSettings(container, tenantId, onTenantChange) {
           </div>
         </form>
 
-        <!-- Kategorien-Liste -->
         <div id="cats-list">
           ${Object.entries(gruppenMap).map(([gruppe, kats]) => `
             <div style="margin-bottom:12px">
@@ -131,12 +227,8 @@ export async function renderSettings(container, tenantId, onTenantChange) {
           <span class="card-title">📥 Daten exportieren</span>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <a href="/api/export/csv?tenant_id=${tenantId}" class="btn btn-secondary" download>
-            📄 CSV
-          </a>
-          <a href="/api/export/xlsx?tenant_id=${tenantId}" class="btn btn-secondary" download>
-            📊 Excel
-          </a>
+          <a href="/api/export/csv?tenant_id=${tenantId}" class="btn btn-secondary" download>📄 CSV</a>
+          <a href="/api/export/xlsx?tenant_id=${tenantId}" class="btn btn-secondary" download>📊 Excel</a>
         </div>
       </div>
 
@@ -194,11 +286,16 @@ export async function renderSettings(container, tenantId, onTenantChange) {
     document.getElementById('save-settings-btn').addEventListener('click', async () => {
       try {
         await api.saveSettings({
-          ai_provider: document.getElementById('ai-provider').value,
-          gemini_api_key: document.getElementById('gemini-key').value,
+          ai_provider:      document.getElementById('ai-provider').value,
+          gemini_model:     document.getElementById('gemini-model').value,
+          claude_model:     document.getElementById('claude-model').value,
+          openai_model:     document.getElementById('openai-model').value,
+          gemini_api_key:   document.getElementById('gemini-key').value,
           anthropic_api_key: document.getElementById('anthropic-key').value,
+          openai_api_key:   document.getElementById('openai-key').value,
         });
         zeigeToast('Einstellungen gespeichert!', 'success');
+        renderSettings(container, tenantId, onTenantChange);
       } catch (err) {
         zeigeToast(err.message, 'error');
       }
@@ -217,7 +314,7 @@ export async function renderSettings(container, tenantId, onTenantChange) {
       if (!name) return;
       try {
         await api.createCategory({
-          tenant_id: null, // Global
+          tenant_id: null,
           name,
           group_name: document.getElementById('new-cat-group').value.trim() || null,
           icon: document.getElementById('new-cat-icon').value.trim() || null,
@@ -234,8 +331,7 @@ export async function renderSettings(container, tenantId, onTenantChange) {
     document.getElementById('cats-list').addEventListener('click', async (e) => {
       const del = e.target.closest('.cat-del');
       if (!del) return;
-      const antwort = confirm('Kategorie löschen? Alle Positionen werden auf "Sonstiges" gesetzt.');
-      if (!antwort) return;
+      if (!confirm('Kategorie löschen? Alle Positionen werden auf "Sonstiges" gesetzt.')) return;
       try {
         await api.deleteCategory(del.dataset.id, { moveToSonstiges: true });
         zeigeToast('Kategorie gelöscht', 'success');

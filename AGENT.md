@@ -28,11 +28,19 @@ the entire system runs in a single Docker container. The database file lives
 at `/data/haushaltsbuch.db` and is persisted as a Docker volume.
 Migration to PostgreSQL is possible by swapping `better-sqlite3` for `pg` and adapting queries.
 
-### Gemini 2.5 Flash as primary AI
-Best price-to-performance ratio for OCR on printed text (receipts).
-Natively multimodal — no separate OCR step needed. Price: ~$0.30/$2.50 per
-million tokens (input/output). Claude Haiku 4.5 is configurable as fallback.
-**Never use GPT-4o — outdated and significantly more expensive.**
+### AI providers and model selection
+Three providers are supported. The active provider is set via `AI_PROVIDER` (env or UI):
+
+| Provider | Models | Notes |
+|---|---|---|
+| **Gemini** (default) | `gemini-2.5-flash`, `gemini-3.1-flash-lite` | Best price/performance for receipt OCR. Flash-Lite is faster and cheaper (preview). |
+| **Claude** | `claude-haiku-4-5-20251001` | Anthropic fallback. |
+| **OpenAI** | `gpt-5-mini`, `gpt-5-nano` | Nano is fast and cheap for simple receipts. |
+
+Model selection: `env` > `settings` DB > hardcoded default. Each provider has its own model setting
+(`GEMINI_MODEL`, `CLAUDE_MODEL`, `OPENAI_MODEL`) so switching providers doesn't reset the model choice.
+
+The settings UI shows a 🔒 badge when a key comes from `.env` — the key value is never exposed to the frontend.
 
 ### Asynchronous AI processing (2 phases)
 OCR and categorization do NOT run synchronously on upload. Reasons:
@@ -126,7 +134,7 @@ cached (cache-first); API calls use network-first.
 │   │   ├── export.js
 │   │   └── settings.js
 │   └── services/
-│       ├── ai.js              # Gemini/Claude wrapper (shared interface)
+│       ├── ai.js              # Gemini/Claude/OpenAI wrapper (shared interface)
 │       └── export.js          # CSV + XLSX
 └── public/
     ├── index.html
@@ -153,16 +161,21 @@ cached (cache-first); API calls use network-first.
 
 | Variable | Description | Default |
 |---|---|---|
-| `AI_PROVIDER` | `gemini` or `claude` | `gemini` |
+| `AI_PROVIDER` | `gemini`, `claude` or `openai` | `gemini` |
 | `GEMINI_API_KEY` | Google AI Studio API key | — |
 | `ANTHROPIC_API_KEY` | Anthropic API key | — |
+| `OPENAI_API_KEY` | OpenAI API key | — |
+| `GEMINI_MODEL` | Override Gemini model | `gemini-2.5-flash` |
+| `CLAUDE_MODEL` | Override Claude model | `claude-haiku-4-5-20251001` |
+| `OPENAI_MODEL` | Override OpenAI model | `gpt-5-mini` |
 | `PORT` | HTTP port | `3000` |
 | `TZ` | Timezone | `Europe/Berlin` |
 | `UPLOAD_MAX_MB` | Max upload file size | `25` |
 | `WORKER_INTERVAL_SEC` | Worker polling interval | `10` |
 
-API keys can alternatively be set in the app (settings page) and are then
-stored in the SQLite `settings` table. `.env` takes precedence.
+API keys and model selection can alternatively be configured in the app (settings page)
+and are then stored in the SQLite `settings` table. `.env` always takes precedence.
+Keys set via `.env` are shown as 🔒 in the UI but never exposed as values.
 
 ---
 
