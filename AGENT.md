@@ -31,11 +31,11 @@ Migration to PostgreSQL is possible by swapping `better-sqlite3` for `pg` and ad
 ### AI providers and model selection
 Three providers are supported. The active provider is set via `AI_PROVIDER` (env or UI):
 
-| Provider | Models | Notes |
+| Provider | Default model | Notes |
 |---|---|---|
-| **Gemini** (default) | `gemini-2.5-flash`, `gemini-3.1-flash-lite` | Best price/performance for receipt OCR. Flash-Lite is faster and cheaper (preview). |
+| **Gemini** (default) | `gemini-2.5-flash` | Best price/performance for receipt OCR. |
 | **Claude** | `claude-haiku-4-5-20251001` | Anthropic fallback. |
-| **OpenAI** | `gpt-5-mini`, `gpt-5-nano` | Nano is fast and cheap for simple receipts. |
+| **OpenAI** | `gpt-5-mini` | Fast and cheap for simple receipts. |
 
 Model selection: `env` > `settings` DB > hardcoded default. Each provider has its own model setting
 (`GEMINI_MODEL`, `CLAUDE_MODEL`, `OPENAI_MODEL`) so switching providers doesn't reset the model choice.
@@ -86,10 +86,10 @@ on line items. Reason: simplicity. The user shops in both countries with EUR.
 ### Distroless Docker image (multi-stage build)
 The final Docker image is based on `gcr.io/distroless/nodejs22-debian13` instead of Alpine.
 Reason: no shell, no package manager, no unnecessary binaries → minimal attack surface
-and clean CVE scanning signal. Multi-stage build: Stage 1 (node:22-alpine) installs
+and clean CVE scanning signal. Multi-stage build: Stage 1 (`node:22-slim`) installs
 dependencies and compiles native modules (better-sqlite3); Stage 2 (distroless) copies
-only `node_modules/`, `src/` and `public/`. `.dockerignore` excludes `.env`, `Dockerfile`,
-`node_modules` and `data/` from the build context.
+`node_modules/`, `package.json`, `src/` and `public/`. `.dockerignore` excludes `.env`,
+`Dockerfile`, `node_modules` and `data/` from the build context.
 **Important:** Since distroless has no shell, CMD must always use vector form: `["src/server.js"]`.
 Cross-platform builds (M1/M2 → amd64): `docker buildx build --platform linux/amd64 .`
 
@@ -98,6 +98,28 @@ The app must be usable from a smartphone, even with a poor connection.
 Photos are saved in IndexedDB when offline and automatically uploaded
 once a connection is available. The app shell (HTML/CSS/JS) is fully
 cached (cache-first); API calls use network-first.
+
+### PWA icons
+- `public/icons/icon.svg` — master icon (blue gradient, receipt with bar chart, star badge)
+- `public/icons/icon-maskable.svg` — Android adaptive icon variant; all content within the
+  40% safe-zone radius (r ≤ 204.8 px from center for 512×512)
+- PNGs are generated via `scripts/generate-icons.mjs` (uses `sharp`)
+- `manifest.json` has separate entries for `"purpose": "any"` and `"purpose": "maskable"`
+- `index.html` references `apple-touch-icon.png` (180×180) for iOS home screen
+
+### Category migration and reset
+On server start, `migrateKategorien()` in `db.js` detects outdated category names and
+replaces them with the current 41-entry seed list. If a migration ran, the server
+automatically calls `recategorizeAll()` for all tenants so orphaned items get new
+categories assigned by AI. Manually corrected items (`manually_corrected = 1`) are preserved.
+
+A "Reset categories" button in the settings UI calls `POST /api/categories/reset`, which
+deletes all global categories, re-seeds the defaults and queues all receipts for
+re-categorization.
+
+### App version endpoint
+`GET /api/version` returns the version from `package.json`. The service worker uses this
+on activation to detect deploys and clear stale caches automatically.
 
 ---
 
@@ -116,19 +138,30 @@ cached (cache-first); API calls use network-first.
 /
 ├── AGENT.md                   ← this document
 ├── README.md                  ← installation guide
-├── Dockerfile             # Multi-stage: node:22-alpine (build) → distroless (runtime)
-├── .dockerignore          # excludes .env, node_modules, data/
+├── Dockerfile                 # Multi-stage: node:22-slim (build) → distroless (runtime)
+├── .dockerignore              # excludes .env, node_modules, data/
 ├── docker-compose.yml
 ├── .env.example
 ├── .gitignore
 ├── package.json
+├── scripts/
+│   ├── deploy-bump.sh         # bumps patch version + git tag for deploys
+│   └── generate-icons.mjs    # SVG → PNG icon generation (uses sharp)
+├── docs/
+│   ├── haushaltsbuch_prompt.md          # original German spec prompt
+│   ├── haushaltsbuch_prompt_EN.md
+│   ├── claude-ai-planning-conversation.md   # planning chat (DE)
+│   ├── claude-ai-planning-conversation_EN.md
+│   ├── claude-ai-planning-conversation.pdf
+│   ├── claude-code-development-session.md   # dev session notes (DE)
+│   └── claude-code-development-session_EN.md
 ├── src/
-│   ├── server.js              # Express server + worker start
-│   ├── db.js                  # SQLite init + schema + seed categories
-│   ├── worker.js              # Job queue worker (setInterval)
+│   ├── server.js              # Express server + worker start + /api/version
+│   ├── db.js                  # SQLite init + schema + seed + migrateKategorien + resetGlobaleKategorien
+│   ├── worker.js              # Job queue worker (setInterval) + recategorizeAll
 │   ├── routes/
 │   │   ├── receipts.js
-│   │   ├── categories.js
+│   │   ├── categories.js      # includes POST /reset
 │   │   ├── tenants.js
 │   │   ├── stats.js
 │   │   ├── export.js
@@ -138,21 +171,24 @@ cached (cache-first); API calls use network-first.
 │       └── export.js          # CSV + XLSX
 └── public/
     ├── index.html
-    ├── manifest.json
-    ├── sw.js                  # Service Worker
+    ├── manifest.json          # separate any/maskable icon entries
+    ├── sw.js                  # Service Worker (cache-first shell, network-first API)
     ├── css/app.css
     ├── js/
     │   ├── app.js             # Router + init
     │   ├── api.js             # fetch wrapper
     │   ├── offline.js         # IndexedDB upload queue
-    │   ├── charts.js          # Canvas chart rendering
+    │   ├── charts.js          # Canvas chart rendering (expandable legend)
     │   └── views/
     │       ├── dashboard.js
     │       ├── capture.js
     │       ├── receipts.js
     │       ├── receipt-detail.js
-    │       └── settings.js
+    │       └── settings.js    # cache-clear button + category reset button
     └── icons/
+        ├── icon.svg / icon-192.png / icon-512.png
+        ├── icon-maskable.svg / icon-maskable-192.png / icon-maskable-512.png
+        └── apple-touch-icon.png  (180×180, iOS only)
 ```
 
 ---
