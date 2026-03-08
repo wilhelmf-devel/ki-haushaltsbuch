@@ -422,7 +422,7 @@ Done. Here's what changed:
 | Vorher | Nachher | Inhalt |
 |---|---|---|
 | `IMG_2863.jpg` | `docs/screenshots/dashboard.jpg` | Dashboard mit Kuchendiagramm |
-| `IMG_2864.jpg` | `docs/screenshots/receipts-list.jpg` | Belegliste (EROSKI, 19.06€) |
+| `IMG_2864.jpg` | `docs/screenshots/receipts-list.jpg` | Belegliste mit Belegen |
 | `IMG_2865.jpg` | `docs/screenshots/capture.jpg` | Erfassen-Screen mit Spinner |
 
 **README — neue Abschnitte:**
