@@ -54,6 +54,10 @@ app.use('/api/stats', require('./routes/stats'));
 app.use('/api/export', require('./routes/export'));
 app.use('/api/settings', require('./routes/settings'));
 
+// App-Version für Cache-Busting (SW vergleicht beim Aktivieren)
+const { version } = require('../package.json');
+app.get('/api/version', (req, res) => res.json({ version }));
+
 // Datei-Upload-Route
 app.post('/api/upload', upload.single('file'), (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'Keine Datei hochgeladen' });

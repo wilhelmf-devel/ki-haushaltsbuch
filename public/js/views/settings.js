@@ -242,6 +242,18 @@ export async function renderSettings(container, tenantId, onTenantChange) {
         </p>
         <button class="btn btn-secondary" id="recategorize-btn">Alle Positionen neu kategorisieren</button>
       </div>
+
+      <!-- App-Cache -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">🔁 App-Cache</span>
+        </div>
+        <p style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:12px">
+          Bei sichtbaren Darstellungsproblemen oder nach einem Update: Cache leeren und App neu laden.
+          Gespeicherte Daten bleiben erhalten.
+        </p>
+        <button class="btn btn-secondary" id="clear-cache-btn">App-Cache leeren & neu laden</button>
+      </div>
     `;
 
     // ===== EVENT LISTENER =====
@@ -338,6 +350,24 @@ export async function renderSettings(container, tenantId, onTenantChange) {
         renderSettings(container, tenantId, onTenantChange);
       } catch (err) {
         zeigeToast(err.message, 'error');
+      }
+    });
+
+    // App-Cache leeren
+    document.getElementById('clear-cache-btn').addEventListener('click', async () => {
+      try {
+        // SW benachrichtigen, alle Caches zu löschen
+        const reg = await navigator.serviceWorker.getRegistration();
+        if (reg?.active) {
+          reg.active.postMessage({ type: 'CLEAR_CACHE' });
+        }
+        // Eigene Caches direkt löschen (Fallback)
+        const keys = await caches.keys();
+        await Promise.all(keys.map((k) => caches.delete(k)));
+        zeigeToast('Cache geleert – App wird neu geladen…', 'success');
+        setTimeout(() => window.location.reload(), 1200);
+      } catch (err) {
+        zeigeToast('Cache-Fehler: ' + err.message, 'error');
       }
     });
 

@@ -1,7 +1,11 @@
 // Service Worker – Cache-First für App-Shell, Network-First für API
 'use strict';
 
-const CACHE_NAME = 'haushaltsbuch-v1';
+// Bump CACHE_VERSION bei jedem Deploy um Cache-Refresh zu erzwingen.
+// Automatisch via: scripts/deploy-bump.sh
+const CACHE_VERSION = 'v1';
+const CACHE_NAME = `ki-haushaltsbuch-${CACHE_VERSION}`;
+
 const APP_SHELL = [
   '/',
   '/index.html',
@@ -23,9 +27,7 @@ const APP_SHELL = [
 // Installation: App-Shell cachen
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(APP_SHELL);
-    })
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL))
   );
   self.skipWaiting();
 });
@@ -34,12 +36,20 @@ self.addEventListener('install', (event) => {
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
-      Promise.all(
-        keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k))
-      )
-    )
+      Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
+    ).then(() => self.clients.claim())
   );
-  self.clients.claim();
+});
+
+// Nachrichten vom Client (z.B. Cache-Clear-Button in Einstellungen)
+self.addEventListener('message', (event) => {
+  if (event.data?.type === 'CLEAR_CACHE') {
+    event.waitUntil(
+      caches.keys()
+        .then((keys) => Promise.all(keys.map((k) => caches.delete(k))))
+        .then(() => self.skipWaiting())
+    );
+  }
 });
 
 // Fetch-Handler
@@ -49,12 +59,12 @@ self.addEventListener('fetch', (event) => {
   // API-Calls: Network-First
   if (url.pathname.startsWith('/api/')) {
     event.respondWith(
-      fetch(event.request).catch(() => {
-        return new Response(
+      fetch(event.request).catch(() =>
+        new Response(
           JSON.stringify({ error: 'Offline – keine Verbindung zum Server' }),
           { status: 503, headers: { 'Content-Type': 'application/json' } }
-        );
-      })
+        )
+      )
     );
     return;
   }
@@ -64,7 +74,6 @@ self.addEventListener('fetch', (event) => {
     caches.match(event.request).then((cached) => {
       if (cached) return cached;
       return fetch(event.request).then((response) => {
-        // Statische Assets in Cache aufnehmen
         if (response.ok && event.request.method === 'GET') {
           const clone = response.clone();
           caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
@@ -83,7 +92,6 @@ self.addEventListener('sync', (event) => {
 });
 
 async function syncOfflineUploads() {
-  // Clients benachrichtigen, Uploads abzusenden
   const clients = await self.clients.matchAll();
   clients.forEach((client) => client.postMessage({ type: 'sync-uploads' }));
 }
