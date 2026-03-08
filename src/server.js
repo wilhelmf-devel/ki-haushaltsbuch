@@ -162,6 +162,17 @@ app.get('*', (req, res) => {
 app.listen(PORT, () => {
   console.log(`[Server] Haushaltsbuch läuft auf Port ${PORT}`);
   starteWorker();
+
+  // Falls Kategorie-Migration stattfand: alle Mandanten automatisch neu kategorisieren
+  if (db.kategorienMigriert) {
+    const { recategorizeAll } = require('./worker');
+    const tenants = db.prepare('SELECT id FROM tenants').all();
+    for (const t of tenants) {
+      recategorizeAll(t.id)
+        .then(n => n > 0 && console.log(`[DB] Migration: ${n} Belege für Mandant ${t.id} zur Neukategorisierung eingeplant`))
+        .catch(err => console.error('[DB] Migration Recategorize-Fehler:', err.message));
+    }
+  }
 });
 
 module.exports = app;

@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1E88E5"/>
+      <stop offset="100%" stop-color="#0D47A1"/>
+    </linearGradient>
+    <linearGradient id="bar1" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#90CAF9"/>
+      <stop offset="100%" stop-color="#64B5F6"/>
+    </linearGradient>
+    <linearGradient id="bar2" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#42A5F5"/>
+      <stop offset="100%" stop-color="#1976D2"/>
+    </linearGradient>
+    <linearGradient id="bar3" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#1E88E5"/>
+      <stop offset="100%" stop-color="#1565C0"/>
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="4" dy="6" stdDeviation="8" flood-color="#0D47A1" flood-opacity="0.4"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="512" height="512" fill="url(#bg)"/>
+
+  <!-- Receipt paper -->
+  <rect x="118" y="68" width="252" height="336" rx="14" fill="white" filter="url(#shadow)"/>
+
+  <!-- Zigzag receipt bottom -->
+  <path d="M118 370 L118 404
+    L134 390 L150 404 L166 390 L182 404
+    L198 390 L214 404 L230 390 L246 404
+    L262 390 L278 404 L294 390 L310 404
+    L326 390 L342 404 L358 390 L370 404
+    L370 370 Z" fill="white"/>
+
+  <!-- Header line (store name) -->
+  <rect x="148" y="98" width="192" height="18" rx="9" fill="#BBDEFB"/>
+
+  <!-- Item lines -->
+  <rect x="148" y="132" width="152" height="11" rx="5" fill="#E3F2FD"/>
+  <rect x="148" y="153" width="132" height="11" rx="5" fill="#E3F2FD"/>
+  <rect x="148" y="174" width="142" height="11" rx="5" fill="#E3F2FD"/>
+
+  <!-- Divider -->
+  <rect x="148" y="202" width="192" height="3" rx="1" fill="#BBDEFB"/>
+
+  <!-- Bar chart – 4 bars ascending -->
+  <rect x="152" y="284" width="44" height="72" rx="7" fill="url(#bar1)"/>
+  <rect x="208" y="252" width="44" height="104" rx="7" fill="url(#bar2)"/>
+  <rect x="264" y="268" width="44" height="88"  rx="7" fill="url(#bar2)"/>
+  <rect x="320" y="228" width="44" height="128" rx="7" fill="url(#bar3)"/>
+
+  <!-- Chart baseline -->
+  <rect x="148" y="356" width="196" height="4" rx="2" fill="#BBDEFB"/>
+
+  <!-- AI Sparkle badge -->
+  <circle cx="366" cy="108" r="52" fill="#FFB300"/>
+  <!-- Star (5-pointed) -->
+  <polygon
+    points="366,62 378,97 415,97 386,119 397,154 366,132 335,154 346,119 317,97 354,97"
+    fill="white"/>
+</svg>

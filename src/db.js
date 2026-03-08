@@ -154,7 +154,7 @@ function migrateKategorien() {
   const hatAlteKat = db.prepare(
     "SELECT 1 FROM categories WHERE name IN ('Fleisch & Fisch','Milchprodukte','Butter & Öle','Wasser & Softdrinks') AND tenant_id IS NULL"
   ).get();
-  if (!hatAlteKat) return; // bereits migriert oder frische Installation
+  if (!hatAlteKat) return false; // bereits migriert oder frische Installation
 
   // Alte → neue Mappings
   const ersetzen = [
@@ -219,8 +219,25 @@ function migrateKategorien() {
   });
   tx();
   console.log('[DB] Kategorien-Migration: granularere Kategorien eingefügt');
+  return true; // Migration hat Änderungen vorgenommen
 }
 
-migrateKategorien();
+// Gibt true zurück wenn eine Migration stattfand (→ Worker triggert Neukategorisierung)
+db.kategorienMigriert = migrateKategorien();
+
+// Globale Kategorien auf Standardwerte zurücksetzen (alle löschen + Seed neu einlesen)
+function resetGlobaleKategorien() {
+  const tx = db.transaction(() => {
+    db.prepare('DELETE FROM categories WHERE tenant_id IS NULL').run();
+    const ins = db.prepare(
+      'INSERT INTO categories (tenant_id, name, color, icon, group_name) VALUES (NULL, ?, ?, ?, ?)'
+    );
+    for (const k of seedKategorien) ins.run(k.name, k.color, k.icon, k.group_name);
+  });
+  tx();
+  console.log(`[DB] Kategorien zurückgesetzt: ${seedKategorien.length} Standard-Kategorien`);
+  return seedKategorien.length;
+}
+db.resetGlobaleKategorien = resetGlobaleKategorien;
 
 module.exports = db;

@@ -243,6 +243,18 @@ export async function renderSettings(container, tenantId, onTenantChange) {
         <button class="btn btn-secondary" id="recategorize-btn">Alle Positionen neu kategorisieren</button>
       </div>
 
+      <!-- Kategorien zurücksetzen -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">🔃 Kategorien zurücksetzen</span>
+        </div>
+        <p style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:12px">
+          Alle globalen Kategorien werden auf die 41 Standard-Kategorien zurückgesetzt.
+          Eigene Anpassungen gehen verloren. Alle Positionen werden danach automatisch neu kategorisiert.
+        </p>
+        <button class="btn btn-secondary" id="reset-cats-btn" style="color:#d32f2f">Kategorien auf Standard zurücksetzen</button>
+      </div>
+
       <!-- App-Cache -->
       <div class="card">
         <div class="card-header">
@@ -368,6 +380,18 @@ export async function renderSettings(container, tenantId, onTenantChange) {
         setTimeout(() => window.location.reload(), 1200);
       } catch (err) {
         zeigeToast('Cache-Fehler: ' + err.message, 'error');
+      }
+    });
+
+    // Kategorien zurücksetzen
+    document.getElementById('reset-cats-btn').addEventListener('click', async () => {
+      if (!confirm('Wirklich alle globalen Kategorien auf Standard zurücksetzen? Eigene Kategorien gehen verloren und alle Positionen werden neu kategorisiert.')) return;
+      try {
+        const { categories_reset, receipts_queued } = await api.resetCategories();
+        zeigeToast(`${categories_reset} Standard-Kategorien wiederhergestellt, ${receipts_queued} Belege zur Neukategorisierung eingeplant`, 'success');
+        renderSettings(container, tenantId, onTenantChange);
+      } catch (err) {
+        zeigeToast(err.message, 'error');
       }
     });
 

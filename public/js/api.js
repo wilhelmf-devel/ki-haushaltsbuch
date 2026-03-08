@@ -53,6 +53,7 @@ export const api = {
   createCategory: (data) => apiFetch('/api/categories', { method: 'POST', body: JSON.stringify(data) }),
   updateCategory: (id, data) => apiFetch(`/api/categories/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   deleteCategory: (id, opts = {}) => apiFetch(`/api/categories/${id}${opts.moveToSonstiges ? '?move_to_sonstiges=true' : ''}`, { method: 'DELETE' }),
+  resetCategories: () => apiFetch('/api/categories/reset', { method: 'POST' }),
 
   // Stats
   getStats: (params) => apiFetch('/api/stats?' + new URLSearchParams(params)),

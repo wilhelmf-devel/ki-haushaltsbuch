@@ -82,4 +82,18 @@ router.delete('/:id', (req, res) => {
   res.json({ success: true });
 });
 
+// Globale Kategorien auf Standard zurücksetzen + alle Mandanten neu kategorisieren
+router.post('/reset', (req, res) => {
+  const anzahl = db.resetGlobaleKategorien();
+  const { recategorizeAll } = require('../worker');
+  const tenants = db.prepare('SELECT id FROM tenants').all();
+
+  Promise.all(tenants.map(t => recategorizeAll(t.id)))
+    .then(ergebnisse => {
+      const gesamt = ergebnisse.reduce((s, n) => s + n, 0);
+      res.json({ success: true, categories_reset: anzahl, receipts_queued: gesamt });
+    })
+    .catch(err => res.status(500).json({ error: err.message }));
+});
+
 module.exports = router;
