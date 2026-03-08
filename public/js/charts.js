@@ -143,9 +143,32 @@ export function zeichneLegende(container, daten, total) {
   }
 
   if (daten.length > 8) {
-    const rest = document.createElement('div');
-    rest.style.cssText = 'font-size:0.75rem;color:var(--text-secondary);text-align:center;margin-top:4px;';
-    rest.textContent = `+ ${daten.length - 8} weitere Kategorien`;
-    container.appendChild(rest);
+    const restEintraege = daten.slice(8);
+    let aufgeklappt = false;
+
+    const restContainer = document.createElement('div');
+    restEintraege.forEach(d => {
+      const prozent = total > 0 ? ((d.summe / total) * 100).toFixed(1) : '0';
+      const zeile = document.createElement('div');
+      zeile.style.cssText = 'display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:0.8rem;display:none;';
+      zeile.innerHTML = `
+        <span class="color-swatch" style="background:${d.color || '#9E9E9E'}"></span>
+        <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${d.icon || ''} ${d.name}</span>
+        <span style="color:var(--text-secondary)">${prozent}%</span>
+        <span style="font-weight:600">${d.summe.toFixed(2)}€</span>
+      `;
+      restContainer.appendChild(zeile);
+    });
+    container.appendChild(restContainer);
+
+    const toggle = document.createElement('div');
+    toggle.style.cssText = 'font-size:0.75rem;color:var(--primary);text-align:center;margin-top:4px;cursor:pointer;user-select:none;';
+    toggle.textContent = `+ ${restEintraege.length} weitere Kategorien`;
+    toggle.addEventListener('click', () => {
+      aufgeklappt = !aufgeklappt;
+      restContainer.querySelectorAll('div').forEach(el => el.style.display = aufgeklappt ? 'flex' : 'none');
+      toggle.textContent = aufgeklappt ? '▲ weniger anzeigen' : `+ ${restEintraege.length} weitere Kategorien`;
+    });
+    container.appendChild(toggle);
   }
 }

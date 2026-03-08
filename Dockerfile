@@ -24,5 +24,5 @@ VOLUME ["/data"]
 
 EXPOSE 3000
 
-# Distroless has no shell → CMD must always be in vector form
+# Distroless has no shell - CMD must always be in vector form
 CMD ["src/server.js"]
