@@ -3,7 +3,7 @@
 
 import { api } from '../api.js';
 import { zeichneKuchendiagramm, zeichneBalkendiagramm, zeichneLegende } from '../charts.js';
-import { zeigeToast } from '../app.js';
+import { zeigeToast, navigiere } from '../app.js';
 
 export async function renderDashboard(container, tenantId) {
   if (!tenantId) {
@@ -36,7 +36,7 @@ export async function renderDashboard(container, tenantId) {
           <div class="stat-value">${stats.gesamt.toFixed(2)}€</div>
           <div class="stat-label">Ausgaben</div>
         </div>
-        <div class="stat-card">
+        <div class="stat-card" id="belege-card" style="cursor:pointer" title="Alle Belege anzeigen">
           <div class="stat-value">${stats.anzahl_belege}</div>
           <div class="stat-label">Belege</div>
         </div>
@@ -75,6 +75,9 @@ export async function renderDashboard(container, tenantId) {
       </div>
       ` : ''}
     `;
+
+    // Belege-Karte klickbar machen
+    document.getElementById('belege-card')?.addEventListener('click', () => navigiere('receipts'));
 
     // Charts zeichnen
     const pieCanvas = document.getElementById('pie-chart');

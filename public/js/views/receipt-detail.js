@@ -73,25 +73,13 @@ export async function renderReceiptDetail(container, tenantId, params = {}) {
         </div>
       </div>
 
-      <!-- Positions-Liste -->
-      ${receipt.items.length > 0 ? `
-        <div class="card">
-          <div class="card-header">
-            <span class="card-title">Positionen (${receipt.items.length})</span>
-          </div>
-          <div id="items-list">
-            ${receipt.items.map(item => renderItemZeile(item, kategorien)).join('')}
-          </div>
-        </div>
-      ` : ''}
-
-      <!-- Beleg bearbeiten -->
+      <!-- Beleg bearbeiten (direkt unter Kopfdaten, damit es sichtbar bleibt) -->
       <div class="card hidden" id="edit-form-card">
         <h3 style="margin-bottom:16px">Beleg bearbeiten</h3>
         <div class="form-row">
           <div class="form-group">
             <label>Datum</label>
-            <input type="date" id="edit-datum" value="${receipt.receipt_date}">
+            <input type="date" id="edit-datum" value="${(receipt.receipt_date || '').slice(0, 10)}">
           </div>
           <div class="form-group">
             <label>Geschäft</label>
@@ -107,6 +95,18 @@ export async function renderReceiptDetail(container, tenantId, params = {}) {
           <button class="btn btn-secondary" id="cancel-edit-btn">Abbrechen</button>
         </div>
       </div>
+
+      <!-- Positions-Liste -->
+      ${receipt.items.length > 0 ? `
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Positionen (${receipt.items.length})</span>
+          </div>
+          <div id="items-list">
+            ${receipt.items.map(item => renderItemZeile(item, kategorien)).join('')}
+          </div>
+        </div>
+      ` : ''}
     `;
 
     // Event-Listener
@@ -182,7 +182,7 @@ function renderItemZeile(item, kategorien) {
         <div style="font-size:0.9rem;font-weight:500">
           ${item.quantity !== 1 ? `${item.quantity}x ` : ''}${item.description}
         </div>
-        ${item.quantity !== 1 ? `<div style="font-size:0.75rem;color:var(--text-secondary)">${item.unit_price.toFixed(2)}€/Stk</div>` : ''}
+        ${item.quantity !== 1 ? `<div style="font-size:0.75rem;color:var(--text-secondary)">${(item.unit_price ?? 0).toFixed(2)}€/Stk</div>` : ''}
       </div>
       <select class="item-cat-select" data-item-id="${item.id}"
         style="flex:1;min-width:120px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;background:var(--bg-input);color:var(--text);font-size:0.8rem">
@@ -193,7 +193,7 @@ function renderItemZeile(item, kategorien) {
           </option>
         `).join('')}
       </select>
-      <span style="font-weight:600;white-space:nowrap">${item.total_price.toFixed(2)}€</span>
+      <span style="font-weight:600;white-space:nowrap">${(item.total_price ?? 0).toFixed(2)}€</span>
     </div>
   `;
 }

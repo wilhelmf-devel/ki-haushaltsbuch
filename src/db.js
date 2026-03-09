@@ -119,6 +119,7 @@ const seedKategorien = [
   { name: 'Hygieneartikel',        group_name: 'Drogerie',     icon: '🪥', color: '#7E57C2' },
   // Mobilität
   { name: 'Tankstelle',            group_name: 'Mobilität',    icon: '⛽', color: '#546E7A' },
+  { name: 'Parkgebühren',          group_name: 'Mobilität',    icon: '🅿️', color: '#78909C' },
   // Ausgehen
   { name: 'Restaurant',            group_name: 'Ausgehen',     icon: '🍽️', color: '#EF5350' },
   { name: 'Café & Bäckerei',       group_name: 'Ausgehen',     icon: '☕', color: '#8D6E63' },
