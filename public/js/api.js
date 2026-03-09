@@ -1,6 +1,14 @@
 // fetch-Wrapper mit Fehlerbehandlung
 'use strict';
 
+// Strip undefined/null before building a query string so that
+// e.g. { from: undefined } never becomes "from=undefined" in the URL.
+function queryStr(params) {
+  return new URLSearchParams(
+    Object.fromEntries(Object.entries(params).filter(([, v]) => v != null))
+  );
+}
+
 export async function apiFetch(url, options = {}) {
   const res = await fetch(url, {
     headers: { 'Content-Type': 'application/json', ...options.headers },
@@ -32,7 +40,7 @@ export const api = {
   deleteTenant: (id) => apiFetch(`/api/tenants/${id}`, { method: 'DELETE' }),
 
   // Receipts
-  getReceipts: (params) => apiFetch('/api/receipts?' + new URLSearchParams(params)),
+  getReceipts: (params) => apiFetch('/api/receipts?' + queryStr(params)),
   getReceipt: (id) => apiFetch(`/api/receipts/${id}`),
   createReceipt: (data) => apiFetch('/api/receipts', { method: 'POST', body: JSON.stringify(data) }),
   updateReceipt: (id, data) => apiFetch(`/api/receipts/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
@@ -59,7 +67,7 @@ export const api = {
   recategorizeMissing: () => apiFetch('/api/categories/recategorize-missing', { method: 'POST' }),
 
   // Stats
-  getStats: (params) => apiFetch('/api/stats?' + new URLSearchParams(params)),
+  getStats: (params) => apiFetch('/api/stats?' + queryStr(params)),
 
   // Jobs
   getJobs: () => apiFetch('/api/jobs'),
