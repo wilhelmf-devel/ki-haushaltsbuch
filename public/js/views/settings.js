@@ -240,7 +240,10 @@ export async function renderSettings(container, tenantId, onTenantChange) {
         <p style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:12px">
           Alle nicht manuell korrigierten Positionen werden mit der aktuellen Kategorieliste neu zugewiesen.
         </p>
-        <button class="btn btn-secondary" id="recategorize-btn">Alle Positionen neu kategorisieren</button>
+        <div style="display:flex;flex-wrap:wrap;gap:8px">
+          <button class="btn btn-secondary" id="recategorize-missing-btn">Unkategorisierte neu eingruppieren</button>
+          <button class="btn btn-secondary" id="recategorize-btn" style="color:var(--text-secondary)">Alle neu kategorisieren</button>
+        </div>
       </div>
 
       <!-- Kategorien zurücksetzen -->
@@ -395,7 +398,21 @@ export async function renderSettings(container, tenantId, onTenantChange) {
       }
     });
 
-    // Neu kategorisieren
+    // Nur unkategorisierte Positionen neu eingruppieren
+    document.getElementById('recategorize-missing-btn').addEventListener('click', async () => {
+      try {
+        const { receipts_queued } = await api.recategorizeMissing();
+        if (receipts_queued === 0) {
+          zeigeToast('Keine unkategorisierten Positionen gefunden', 'info');
+        } else {
+          zeigeToast(`${receipts_queued} Belege mit unkategorisierten Positionen eingeplant`, 'success');
+        }
+      } catch (err) {
+        zeigeToast(err.message, 'error');
+      }
+    });
+
+    // Alle Positionen neu kategorisieren
     document.getElementById('recategorize-btn').addEventListener('click', async () => {
       if (!confirm('Alle Positionen neu kategorisieren? (Manuelle Korrekturen bleiben erhalten)')) return;
       try {

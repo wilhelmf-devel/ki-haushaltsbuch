@@ -200,4 +200,25 @@ async function recategorizeAll(tenantId) {
   return receipts.length;
 }
 
-module.exports = { starteWorker, recategorizeAll };
+// Nur Belege mit mindestens einem unkategorisierten Item in die Queue
+async function recategorizeUncategorized(tenantId) {
+  const receipts = db.prepare(`
+    SELECT DISTINCT r.id
+    FROM receipts r
+    JOIN receipt_items ri ON ri.receipt_id = r.id
+    WHERE r.tenant_id = ?
+      AND r.ocr_status = 'done'
+      AND ri.category_id IS NULL
+      AND ri.manually_corrected = 0
+  `).all(tenantId);
+
+  for (const r of receipts) {
+    db.prepare(`
+      INSERT INTO jobs (type, status, payload) VALUES ('categorize', 'pending', ?)
+    `).run(JSON.stringify({ receipt_id: r.id }));
+  }
+
+  return receipts.length;
+}
+
+module.exports = { starteWorker, recategorizeAll, recategorizeUncategorized };

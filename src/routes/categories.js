@@ -96,4 +96,17 @@ router.post('/reset', (req, res) => {
     .catch(err => res.status(500).json({ error: err.message }));
 });
 
+// Unkategorisierte Items aller Mandanten neu kategorisieren
+router.post('/recategorize-missing', (req, res) => {
+  const { recategorizeUncategorized } = require('../worker');
+  const tenants = db.prepare('SELECT id FROM tenants').all();
+
+  Promise.all(tenants.map(t => recategorizeUncategorized(t.id)))
+    .then(ergebnisse => {
+      const gesamt = ergebnisse.reduce((s, n) => s + n, 0);
+      res.json({ success: true, receipts_queued: gesamt });
+    })
+    .catch(err => res.status(500).json({ error: err.message }));
+});
+
 module.exports = router;
