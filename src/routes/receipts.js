@@ -102,6 +102,18 @@ router.post('/', (req, res) => {
   res.status(201).json({ id: receiptId });
 });
 
+// Summen-Mismatch nach Item-Änderungen neu berechnen
+function recalcSumMismatch(receiptId) {
+  const receipt = db.prepare('SELECT total_amount FROM receipts WHERE id = ?').get(receiptId);
+  if (!receipt || !receipt.total_amount) return;
+  const { summe } = db.prepare(
+    'SELECT COALESCE(SUM(total_price), 0) AS summe FROM receipt_items WHERE receipt_id = ?'
+  ).get(receiptId);
+  const abweichung = Math.abs(summe - receipt.total_amount) / receipt.total_amount;
+  db.prepare('UPDATE receipts SET sum_mismatch = ? WHERE id = ?')
+    .run(abweichung > 0.02 ? 1 : 0, receiptId);
+}
+
 // Beleg bearbeiten
 router.put('/:id', (req, res) => {
   const { receipt_date, store_name, receipt_type, total_amount, notes, items } = req.body;
@@ -135,6 +147,7 @@ router.put('/:id', (req, res) => {
     tx();
   }
 
+  recalcSumMismatch(req.params.id);
   res.json({ success: true });
 });
 
@@ -155,12 +168,14 @@ router.put('/:id/items/:itemId', (req, res) => {
   felder.push('manually_corrected = 1');
   vals.push(req.params.itemId, req.params.id);
   db.prepare(`UPDATE receipt_items SET ${felder.join(', ')} WHERE id = ? AND receipt_id = ?`).run(...vals);
+  recalcSumMismatch(req.params.id);
   res.json({ success: true });
 });
 
 // Beleg-Item löschen
 router.delete('/:id/items/:itemId', (req, res) => {
   db.prepare('DELETE FROM receipt_items WHERE id = ? AND receipt_id = ?').run(req.params.itemId, req.params.id);
+  recalcSumMismatch(req.params.id);
   res.json({ success: true });
 });
 
@@ -173,6 +188,7 @@ router.post('/:id/items', (req, res) => {
     INSERT INTO receipt_items (receipt_id, description, quantity, unit_price, total_price, category_id, manually_corrected)
     VALUES (?, ?, ?, ?, ?, ?, 1)
   `).run(req.params.id, description, parseFloat(quantity), parseFloat(unit_price), tp, category_id || null);
+  recalcSumMismatch(req.params.id);
   res.status(201).json({ id: result.lastInsertRowid });
 });
 

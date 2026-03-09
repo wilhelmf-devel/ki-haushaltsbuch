@@ -26,15 +26,16 @@ export async function renderReceiptDetail(container, tenantId, params = {}) {
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
         <button class="btn btn-ghost btn-sm" id="back-btn">← Zurück</button>
         <h2 style="flex:1;font-size:1rem">${receipt.store_name || 'Unbekanntes Geschäft'}</h2>
-        <button class="btn btn-secondary btn-sm" id="edit-btn" title="Datum, Geschäft und Notiz bearbeiten">✏️ Datum/Geschäft</button>
         <button class="btn btn-danger btn-sm btn-icon" id="delete-btn" title="Löschen">🗑️</button>
       </div>
 
-      ${receipt.sum_mismatch ? `
-        <div class="mismatch-banner" style="margin-bottom:12px;border-radius:var(--radius-sm)">
-          ⚠️ Die Summe der erkannten Positionen weicht vom Gesamtbetrag ab. Bitte prüfen.
-        </div>
-      ` : ''}
+      <div id="mismatch-container">
+        ${receipt.sum_mismatch ? `
+          <div class="mismatch-banner" style="margin-bottom:12px;border-radius:var(--radius-sm)">
+            ⚠️ Die Summe der erkannten Positionen weicht vom Gesamtbetrag ab. Bitte prüfen.
+          </div>
+        ` : ''}
+      </div>
 
       <!-- Bild Vorschau -->
       ${receipt.image_path ? `
@@ -46,36 +47,8 @@ export async function renderReceiptDetail(container, tenantId, params = {}) {
         </div>
       ` : ''}
 
-      <!-- Kopfdaten -->
-      <div class="card" id="header-view">
-        <div class="item-row">
-          <span class="item-description">Datum</span>
-          <span>${datum}</span>
-        </div>
-        <div class="item-row">
-          <span class="item-description">Typ</span>
-          <span>${typLabels[receipt.receipt_type] || receipt.receipt_type}</span>
-        </div>
-        <div class="item-row">
-          <span class="item-description">Status</span>
-          <span>${receipt.ocr_status || 'unbekannt'}</span>
-        </div>
-        ${receipt.notes ? `
-        <div class="item-row">
-          <span class="item-description">Notiz</span>
-          <span>${receipt.notes}</span>
-        </div>
-        ` : ''}
-        <div class="divider"></div>
-        <div class="item-row" style="font-weight:700">
-          <span class="item-description">Gesamtbetrag</span>
-          <span>${receipt.total_amount.toFixed(2)}€</span>
-        </div>
-      </div>
-
-      <!-- Beleg bearbeiten (direkt unter Kopfdaten, damit es sichtbar bleibt) -->
-      <div class="card hidden" id="edit-form-card">
-        <h3 style="margin-bottom:16px">Beleg bearbeiten</h3>
+      <!-- Kopfdaten direkt editierbar -->
+      <div class="card">
         <div class="form-row">
           <div class="form-group">
             <label>Datum</label>
@@ -83,22 +56,41 @@ export async function renderReceiptDetail(container, tenantId, params = {}) {
           </div>
           <div class="form-group">
             <label>Geschäft</label>
-            <input type="text" id="edit-geschaeft" value="${receipt.store_name || ''}">
+            <input type="text" id="edit-geschaeft" value="${receipt.store_name || ''}" placeholder="Geschäftsname">
           </div>
         </div>
         <div class="form-group">
           <label>Notiz</label>
-          <textarea id="edit-notiz">${receipt.notes || ''}</textarea>
+          <textarea id="edit-notiz" placeholder="Optionale Notiz">${receipt.notes || ''}</textarea>
         </div>
-        <div style="display:flex;gap:8px">
-          <button class="btn btn-primary" id="save-edit-btn">Speichern</button>
-          <button class="btn btn-secondary" id="cancel-edit-btn">Abbrechen</button>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Gesamtbetrag (€)</label>
+            <input type="number" step="0.01" id="edit-betrag" value="${(receipt.total_amount ?? 0).toFixed(2)}">
+          </div>
+          <div class="form-group" style="justify-content:flex-end">
+            <span style="font-size:0.8rem;color:var(--text-secondary);align-self:flex-end;padding-bottom:8px">
+              ${typLabels[receipt.receipt_type] || receipt.receipt_type} · ${receipt.ocr_status || 'unbekannt'}
+            </span>
+          </div>
         </div>
+        <button class="btn btn-primary btn-sm" id="save-edit-btn" style="margin-top:6px">Speichern</button>
       </div>
 
       <!-- Positions-Liste -->
       <div id="items-karte"></div>
     `;
+
+    // Mismatch-Banner dynamisch aktualisieren (nach Item-Änderungen ohne Full-Reload)
+    function aktualisiereMismatchBanner(freshReceipt) {
+      const container = document.getElementById('mismatch-container');
+      if (!container) return;
+      container.innerHTML = freshReceipt.sum_mismatch ? `
+        <div class="mismatch-banner" style="margin-bottom:12px;border-radius:var(--radius-sm)">
+          ⚠️ Die Summe der erkannten Positionen weicht vom Gesamtbetrag ab. Bitte prüfen.
+        </div>
+      ` : '';
+    }
 
     // Items-Karte rendern (wiederverwendbar nach Änderungen)
     function aktualisiereItemsKarte(items) {
@@ -154,6 +146,7 @@ export async function renderReceiptDetail(container, tenantId, params = {}) {
             await api.deleteReceiptItem(id, itemId);
             const fresh = await api.getReceipt(id);
             aktualisiereItemsKarte(fresh.items);
+            aktualisiereMismatchBanner(fresh);
             zeigeToast('Zeile gelöscht', 'success');
           } catch (err) { zeigeToast(err.message, 'error'); }
         }
@@ -174,6 +167,7 @@ export async function renderReceiptDetail(container, tenantId, params = {}) {
             });
             const fresh = await api.getReceipt(id);
             aktualisiereItemsKarte(fresh.items);
+            aktualisiereMismatchBanner(fresh);
             zeigeToast('Gespeichert', 'success');
           } catch (err) { zeigeToast(err.message, 'error'); }
         }
@@ -213,6 +207,7 @@ export async function renderReceiptDetail(container, tenantId, params = {}) {
             await api.addReceiptItem(id, { description: desc, quantity: qty, unit_price: up, total_price: tp });
             const fresh = await api.getReceipt(id);
             aktualisiereItemsKarte(fresh.items);
+            aktualisiereMismatchBanner(fresh);
             zeigeToast('Zeile hinzugefügt', 'success');
           } catch (err) { zeigeToast(err.message, 'error'); }
         });
@@ -230,25 +225,17 @@ export async function renderReceiptDetail(container, tenantId, params = {}) {
       });
     }
 
-    document.getElementById('edit-btn').addEventListener('click', () => {
-      document.getElementById('header-view').classList.toggle('hidden');
-      document.getElementById('edit-form-card').classList.toggle('hidden');
-    });
-
-    document.getElementById('cancel-edit-btn').addEventListener('click', () => {
-      document.getElementById('header-view').classList.remove('hidden');
-      document.getElementById('edit-form-card').classList.add('hidden');
-    });
-
     document.getElementById('save-edit-btn').addEventListener('click', async () => {
       try {
         await api.updateReceipt(id, {
           receipt_date: document.getElementById('edit-datum').value,
           store_name: document.getElementById('edit-geschaeft').value || null,
           notes: document.getElementById('edit-notiz').value || null,
+          total_amount: parseFloat(document.getElementById('edit-betrag').value) || 0,
         });
+        const fresh = await api.getReceipt(id);
+        aktualisiereMismatchBanner(fresh);
         zeigeToast('Gespeichert!', 'success');
-        renderReceiptDetail(container, tenantId, params);
       } catch (err) {
         zeigeToast(`Fehler: ${err.message}`, 'error');
       }

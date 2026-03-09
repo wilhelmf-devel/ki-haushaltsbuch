@@ -5,6 +5,21 @@ import { api } from '../api.js';
 import { zeigeToast, navigiere } from '../app.js';
 import { queueUpload, flushQueue } from '../offline.js';
 
+// Schnelleingabe-Typen: label = Anzeige, desc = Item-Beschreibung, kat = Kategoriename in DB
+const SCHNELL_TYPEN = [
+  { value: 'fuel',          label: '⛽ Tankstelle',       desc: 'Tankfüllung',     receipt_type: 'fuel',       kat: 'Tankstelle' },
+  { value: 'restaurant',    label: '🍽️ Restaurant',       desc: 'Restaurant',      receipt_type: 'restaurant', kat: 'Restaurant' },
+  { value: 'cafe',          label: '☕ Café & Bäckerei',  desc: 'Café & Bäckerei', receipt_type: 'other',      kat: 'Café & Bäckerei' },
+  { value: 'lieferdienst',  label: '🛵 Lieferdienst',     desc: 'Lieferdienst',    receipt_type: 'other',      kat: 'Lieferdienst' },
+  { value: 'parkgebuehren', label: '🅿️ Parkgebühren',    desc: 'Parken',          receipt_type: 'other',      kat: 'Parkgebühren' },
+  { value: 'oepnv',         label: '🚌 ÖPNV',             desc: 'ÖPNV',            receipt_type: 'other',      kat: 'ÖPNV' },
+  { value: 'sport',         label: '🏃 Sport',            desc: 'Sport',           receipt_type: 'other',      kat: 'Sport' },
+  { value: 'freizeit',      label: '🎯 Freizeit',         desc: 'Freizeit',        receipt_type: 'other',      kat: 'Freizeit' },
+  { value: 'hobby',         label: '🎨 Hobby',            desc: 'Hobby',           receipt_type: 'other',      kat: 'Hobby' },
+  { value: 'kultur',        label: '🎭 Kultur',           desc: 'Kultur',          receipt_type: 'other',      kat: 'Kultur' },
+  { value: 'other',         label: '📄 Sonstiges',        desc: 'Sonstiges',       receipt_type: 'other',      kat: null },
+];
+
 export async function renderCapture(container, tenantId) {
   if (!tenantId) {
     container.innerHTML = '<div class="empty-state"><div class="empty-icon">⚠️</div><p>Bitte wähle einen Mandanten aus.</p></div>';
@@ -36,7 +51,7 @@ export async function renderCapture(container, tenantId) {
       </div>
     </div>
 
-    <!-- Tab: Schnelleingabe (Tank/Restaurant) -->
+    <!-- Tab: Schnelleingabe -->
     <div id="tab-schnell" class="tab-content hidden">
       <form id="schnell-form" class="card">
         <div class="form-group">
@@ -44,11 +59,9 @@ export async function renderCapture(container, tenantId) {
           <input type="date" id="schnell-datum" value="${heuteStr}" required>
         </div>
         <div class="form-group">
-          <label>Typ</label>
+          <label>Art der Ausgabe</label>
           <select id="schnell-typ">
-            <option value="other">Sonstiges</option>
-            <option value="fuel">⛽ Tankstelle</option>
-            <option value="restaurant">🍽️ Restaurant</option>
+            ${SCHNELL_TYPEN.map(t => `<option value="${t.value}">${t.label}</option>`).join('')}
           </select>
         </div>
         <div class="form-group">
@@ -57,7 +70,7 @@ export async function renderCapture(container, tenantId) {
         </div>
         <div class="form-group">
           <label>Geschäft / Ort</label>
-          <input type="text" id="schnell-geschaeft" placeholder="z.B. Aral Tankstelle">
+          <input type="text" id="schnell-geschaeft" placeholder="z.B. Aral, Starbucks …">
         </div>
         <div class="form-group">
           <label>Notiz</label>
@@ -180,13 +193,29 @@ export async function renderCapture(container, tenantId) {
     const btn = e.target.querySelector('button[type=submit]');
     btn.disabled = true;
     try {
+      const typValue   = document.getElementById('schnell-typ').value;
+      const typDef     = SCHNELL_TYPEN.find(t => t.value === typValue) || SCHNELL_TYPEN.at(-1);
+      const betrag     = parseFloat(document.getElementById('schnell-betrag').value) || 0;
+      const geschaeft  = document.getElementById('schnell-geschaeft').value.trim() || null;
+      const katId      = typDef.kat
+        ? (kategorien.find(k => k.name === typDef.kat)?.id || null)
+        : null;
+
       await api.createReceipt({
-        tenant_id: tenantId,
+        tenant_id:    tenantId,
         receipt_date: document.getElementById('schnell-datum').value,
-        receipt_type: document.getElementById('schnell-typ').value,
-        total_amount: parseFloat(document.getElementById('schnell-betrag').value),
-        store_name: document.getElementById('schnell-geschaeft').value || null,
-        notes: document.getElementById('schnell-notiz').value || null,
+        receipt_type: typDef.receipt_type,
+        total_amount: betrag,
+        store_name:   geschaeft,
+        notes:        document.getElementById('schnell-notiz').value.trim() || null,
+        // Einzelnes Item mit Kategorie → ermöglicht Auswertung
+        items: [{
+          description: geschaeft || typDef.desc,
+          quantity:    1,
+          unit_price:  betrag,
+          total_price: betrag,
+          category_id: katId,
+        }],
       });
       zeigeToast('Beleg gespeichert!', 'success');
       navigiere('receipts');
@@ -210,27 +239,31 @@ export async function renderCapture(container, tenantId) {
   function fuegeItemHinzu() {
     const id = ++itemZaehler;
     const zeile = document.createElement('div');
-    zeile.className = 'item-row';
     zeile.dataset.id = id;
+    const inputStyle = 'padding:7px 8px;border:1px solid var(--border);border-radius:6px;background:var(--bg-input);color:var(--text);font-size:0.85rem;min-width:0;box-sizing:border-box';
     zeile.innerHTML = `
-      <div style="flex:1">
-        <input type="text" class="item-desc" placeholder="Beschreibung"
-          style="width:100%;padding:8px;border:1px solid var(--border);border-radius:6px;background:var(--bg-input);color:var(--text);margin-bottom:4px">
-        <div style="display:flex;gap:6px">
-          <input type="number" class="item-qty" value="1" min="0.01" step="0.01"
-            style="width:60px;padding:8px;border:1px solid var(--border);border-radius:6px;background:var(--bg-input);color:var(--text)" placeholder="Menge">
-          <input type="number" class="item-unit" step="0.01" min="0"
-            style="flex:1;padding:8px;border:1px solid var(--border);border-radius:6px;background:var(--bg-input);color:var(--text)" placeholder="Einzelpreis">
-          <input type="number" class="item-total" step="0.01" min="0"
-            style="flex:1;padding:8px;border:1px solid var(--border);border-radius:6px;background:var(--bg-input);color:var(--text)" placeholder="Gesamt">
-          <select class="item-cat"
-            style="flex:1;padding:8px;border:1px solid var(--border);border-radius:6px;background:var(--bg-input);color:var(--text)">
-            <option value="">Kategorie...</option>
-            ${kategorien.map(k => `<option value="${k.id}">${k.icon || ''} ${k.name}</option>`).join('')}
-          </select>
+      <div style="padding:10px 0;border-bottom:1px solid var(--border)">
+        <!-- Zeile 1: Beschreibung + Löschen-Button -->
+        <div style="display:flex;gap:6px;align-items:center;margin-bottom:6px">
+          <input type="text" class="item-desc" placeholder="Beschreibung"
+            style="${inputStyle};flex:1">
+          <button class="btn btn-ghost btn-sm btn-icon item-remove" title="Entfernen" style="flex-shrink:0">✕</button>
         </div>
+        <!-- Zeile 2: Menge, Einzelpreis, Gesamt -->
+        <div style="display:flex;gap:6px;margin-bottom:6px">
+          <input type="number" class="item-qty" value="1" min="0.01" step="0.01"
+            style="${inputStyle};width:62px" placeholder="Menge">
+          <input type="number" class="item-unit" step="0.01" min="0"
+            style="${inputStyle};flex:1" placeholder="Einzelpreis">
+          <input type="number" class="item-total" step="0.01" min="0"
+            style="${inputStyle};flex:1" placeholder="Gesamt">
+        </div>
+        <!-- Zeile 3: Kategorie -->
+        <select class="item-cat" style="${inputStyle};width:100%">
+          <option value="">Kategorie …</option>
+          ${kategorien.map(k => `<option value="${k.id}">${k.icon || ''} ${k.name}</option>`).join('')}
+        </select>
       </div>
-      <button class="btn btn-ghost btn-sm btn-icon item-remove" title="Entfernen">✕</button>
     `;
 
     // Gesamt auto-berechnen
@@ -263,7 +296,7 @@ export async function renderCapture(container, tenantId) {
     const items = [];
     let gueltig = true;
 
-    for (const zeile of itemsContainer.querySelectorAll('.item-row')) {
+    for (const zeile of itemsContainer.children) {
       const desc = zeile.querySelector('.item-desc').value.trim();
       const total = parseFloat(zeile.querySelector('.item-total').value);
       if (!desc || isNaN(total)) { gueltig = false; continue; }

@@ -1,5 +1,8 @@
 /* Haushaltsbuch – Mobile-First CSS mit Dark/Light Mode */
 
+/* Utility */
+.hidden { display: none !important; }
+
 :root {
   --primary: #1976D2;
   --primary-dark: #1565C0;
