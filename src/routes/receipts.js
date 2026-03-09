@@ -138,13 +138,42 @@ router.put('/:id', (req, res) => {
   res.json({ success: true });
 });
 
-// Beleg-Item Kategorie aktualisieren
+// Beleg-Item aktualisieren (Kategorie, Beschreibung, Menge, Preise)
 router.put('/:id/items/:itemId', (req, res) => {
-  const { category_id } = req.body;
-  db.prepare(`
-    UPDATE receipt_items SET category_id = ?, manually_corrected = 1 WHERE id = ? AND receipt_id = ?
-  `).run(category_id || null, req.params.itemId, req.params.id);
+  const { category_id, description, quantity, unit_price, total_price } = req.body;
+  const felder = [];
+  const vals = [];
+
+  if ('category_id' in req.body) { felder.push('category_id = ?'); vals.push(category_id || null); }
+  if (description !== undefined)  { felder.push('description = ?');  vals.push(description); }
+  if (quantity !== undefined)     { felder.push('quantity = ?');      vals.push(parseFloat(quantity)); }
+  if (unit_price !== undefined)   { felder.push('unit_price = ?');    vals.push(parseFloat(unit_price)); }
+  if (total_price !== undefined)  { felder.push('total_price = ?');   vals.push(parseFloat(total_price)); }
+
+  if (felder.length === 0) return res.status(400).json({ error: 'Keine Felder angegeben' });
+
+  felder.push('manually_corrected = 1');
+  vals.push(req.params.itemId, req.params.id);
+  db.prepare(`UPDATE receipt_items SET ${felder.join(', ')} WHERE id = ? AND receipt_id = ?`).run(...vals);
   res.json({ success: true });
+});
+
+// Beleg-Item löschen
+router.delete('/:id/items/:itemId', (req, res) => {
+  db.prepare('DELETE FROM receipt_items WHERE id = ? AND receipt_id = ?').run(req.params.itemId, req.params.id);
+  res.json({ success: true });
+});
+
+// Neue Beleg-Position hinzufügen
+router.post('/:id/items', (req, res) => {
+  const { description, quantity = 1, unit_price = 0, total_price, category_id } = req.body;
+  if (!description) return res.status(400).json({ error: 'description erforderlich' });
+  const tp = total_price !== undefined ? parseFloat(total_price) : parseFloat(unit_price) * parseFloat(quantity);
+  const result = db.prepare(`
+    INSERT INTO receipt_items (receipt_id, description, quantity, unit_price, total_price, category_id, manually_corrected)
+    VALUES (?, ?, ?, ?, ?, ?, 1)
+  `).run(req.params.id, description, parseFloat(quantity), parseFloat(unit_price), tp, category_id || null);
+  res.status(201).json({ id: result.lastInsertRowid });
 });
 
 // Beleg löschen

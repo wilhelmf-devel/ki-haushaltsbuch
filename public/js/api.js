@@ -37,6 +37,8 @@ export const api = {
   createReceipt: (data) => apiFetch('/api/receipts', { method: 'POST', body: JSON.stringify(data) }),
   updateReceipt: (id, data) => apiFetch(`/api/receipts/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   updateReceiptItem: (id, itemId, data) => apiFetch(`/api/receipts/${id}/items/${itemId}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteReceiptItem: (id, itemId) => apiFetch(`/api/receipts/${id}/items/${itemId}`, { method: 'DELETE' }),
+  addReceiptItem: (id, data) => apiFetch(`/api/receipts/${id}/items`, { method: 'POST', body: JSON.stringify(data) }),
   deleteReceipt: (id) => apiFetch(`/api/receipts/${id}`, { method: 'DELETE' }),
 
   // Upload

@@ -120,6 +120,15 @@ const seedKategorien = [
   // Mobilität
   { name: 'Tankstelle',            group_name: 'Mobilität',    icon: '⛽', color: '#546E7A' },
   { name: 'Parkgebühren',          group_name: 'Mobilität',    icon: '🅿️', color: '#78909C' },
+  { name: 'ÖPNV',                  group_name: 'Mobilität',    icon: '🚌', color: '#0288D1' },
+  // Reise
+  { name: 'Bus/Bahn Fernreise',    group_name: 'Reise',        icon: '🚆', color: '#1565C0' },
+  { name: 'Flüge',                 group_name: 'Reise',        icon: '✈️', color: '#0097A7' },
+  { name: 'Hotel',                 group_name: 'Reise',        icon: '🏨', color: '#00796B' },
+  // Freizeit
+  { name: 'Sport',                 group_name: 'Freizeit',     icon: '🏃', color: '#43A047' },
+  { name: 'Freizeit',              group_name: 'Freizeit',     icon: '🎯', color: '#7CB342' },
+  { name: 'Hobby',                 group_name: 'Freizeit',     icon: '🎨', color: '#F9A825' },
   // Ausgehen
   { name: 'Restaurant',            group_name: 'Ausgehen',     icon: '🍽️', color: '#EF5350' },
   { name: 'Café & Bäckerei',       group_name: 'Ausgehen',     icon: '☕', color: '#8D6E63' },
@@ -225,6 +234,24 @@ function migrateKategorien() {
 
 // Gibt true zurück wenn eine Migration stattfand (→ Worker triggert Neukategorisierung)
 db.kategorienMigriert = migrateKategorien();
+
+// Neue Seed-Kategorien auf bestehenden Installationen ergänzen (INSERT OR IGNORE, idempotent)
+function ergaenzeNeueKategorien() {
+  const ins = db.prepare(
+    'INSERT OR IGNORE INTO categories (tenant_id, name, color, icon, group_name) VALUES (NULL, ?, ?, ?, ?)'
+  );
+  const tx = db.transaction(() => {
+    let added = 0;
+    for (const k of seedKategorien) {
+      const r = ins.run(k.name, k.color, k.icon, k.group_name);
+      if (r.changes) added++;
+    }
+    return added;
+  });
+  const added = tx();
+  if (added > 0) console.log(`[DB] ${added} neue Standard-Kategorien ergänzt`);
+}
+ergaenzeNeueKategorien();
 
 // Globale Kategorien auf Standardwerte zurücksetzen (alle löschen + Seed neu einlesen)
 function resetGlobaleKategorien() {
