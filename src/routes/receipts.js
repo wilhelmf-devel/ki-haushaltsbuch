@@ -15,7 +15,9 @@ router.get('/', (req, res) => {
 
   let sql = `
     SELECT DISTINCT r.*,
-      (SELECT COUNT(*) FROM receipt_items WHERE receipt_id = r.id) AS item_count
+      (SELECT COUNT(*) FROM receipt_items WHERE receipt_id = r.id) AS item_count,
+      (SELECT COUNT(*) FROM receipt_items
+       WHERE receipt_id = r.id AND category_id IS NULL AND manually_corrected = 0) AS uncategorized_count
     FROM receipts r
     WHERE r.tenant_id = ?
   `;
