@@ -235,16 +235,45 @@ function migrateKategorien() {
 // Gibt true zurück wenn eine Migration stattfand (→ Worker triggert Neukategorisierung)
 db.kategorienMigriert = migrateKategorien();
 
-// Neue Seed-Kategorien auf bestehenden Installationen ergänzen (INSERT OR IGNORE, idempotent)
+// UNIQUE-Constraint auf (tenant_id, name) nachrüsten + Duplikate bereinigen
+function migrateKategorienUniqueConstraint() {
+  const hatConstraint = db.prepare(
+    "SELECT 1 FROM sqlite_master WHERE type='index' AND name='uq_categories_tenant_name'"
+  ).get();
+  if (hatConstraint) return;
+
+  console.log('[DB] Kategorien: UNIQUE-Constraint wird nachgerüstet, Duplikate werden bereinigt...');
+  db.transaction(() => {
+    // Duplikate entfernen: pro (tenant_id, name) nur die Zeile mit der kleinsten ID behalten
+    db.exec(`
+      DELETE FROM categories
+      WHERE id NOT IN (
+        SELECT MIN(id) FROM categories GROUP BY COALESCE(tenant_id, -1), name
+      )
+    `);
+    // Index als UNIQUE-Constraint anlegen
+    db.exec(`
+      CREATE UNIQUE INDEX uq_categories_tenant_name
+      ON categories (COALESCE(tenant_id, -1), name)
+    `);
+  })();
+  console.log('[DB] Kategorien: UNIQUE-Constraint erfolgreich angelegt');
+}
+migrateKategorienUniqueConstraint();
+
+// Neue Seed-Kategorien auf bestehenden Installationen sicher ergänzen
 function ergaenzeNeueKategorien() {
+  const exists = db.prepare('SELECT 1 FROM categories WHERE name = ? AND tenant_id IS NULL');
   const ins = db.prepare(
     'INSERT OR IGNORE INTO categories (tenant_id, name, color, icon, group_name) VALUES (NULL, ?, ?, ?, ?)'
   );
   const tx = db.transaction(() => {
     let added = 0;
     for (const k of seedKategorien) {
-      const r = ins.run(k.name, k.color, k.icon, k.group_name);
-      if (r.changes) added++;
+      if (!exists.get(k.name)) {
+        ins.run(k.name, k.color, k.icon, k.group_name);
+        added++;
+      }
     }
     return added;
   });

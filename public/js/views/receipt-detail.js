@@ -26,7 +26,7 @@ export async function renderReceiptDetail(container, tenantId, params = {}) {
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
         <button class="btn btn-ghost btn-sm" id="back-btn">← Zurück</button>
         <h2 style="flex:1;font-size:1rem">${receipt.store_name || 'Unbekanntes Geschäft'}</h2>
-        <button class="btn btn-secondary btn-sm" id="edit-btn">✏️ Bearbeiten</button>
+        <button class="btn btn-secondary btn-sm" id="edit-btn" title="Datum, Geschäft und Notiz bearbeiten">✏️ Datum/Geschäft</button>
         <button class="btn btn-danger btn-sm btn-icon" id="delete-btn" title="Löschen">🗑️</button>
       </div>
 
