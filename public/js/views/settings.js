@@ -7,8 +7,8 @@ import { zeigeToast } from '../app.js';
 // Verfügbare Modelle pro Provider
 const MODELLE = {
   gemini: [
-    { value: 'gemini-2.5-flash',             label: 'Gemini 2.5 Flash (Standard)' },
-    { value: 'gemini-2.5-flash-lite',         label: 'Gemini 2.5 Flash-Lite (schneller & günstiger)' },
+    { value: 'gemini-2.5-flash-lite',         label: 'Gemini 2.5 Flash-Lite (Standard – schnell & günstig)' },
+    { value: 'gemini-2.5-flash',              label: 'Gemini 2.5 Flash (höhere Qualität)' },
     { value: 'gemini-3.1-flash-lite-preview', label: 'Gemini 3.1 Flash-Lite Preview (neuestes Modell)' },
   ],
   claude: [

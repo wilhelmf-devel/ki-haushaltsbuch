@@ -29,13 +29,13 @@ function getModels() {
     const db = require('../db');
     const get = (key) => db.prepare('SELECT value FROM settings WHERE key = ?').get(key);
     return {
-      gemini: process.env.GEMINI_MODEL || get('gemini_model')?.value || 'gemini-2.5-flash',
+      gemini: process.env.GEMINI_MODEL || get('gemini_model')?.value || 'gemini-2.5-flash-lite',
       claude: process.env.CLAUDE_MODEL  || get('claude_model')?.value  || 'claude-haiku-4-5-20251001',
       openai: process.env.OPENAI_MODEL  || get('openai_model')?.value  || 'gpt-5.4-mini',
     };
   } catch {
     return {
-      gemini: process.env.GEMINI_MODEL || 'gemini-2.5-flash',
+      gemini: process.env.GEMINI_MODEL || 'gemini-2.5-flash-lite',
       claude: process.env.CLAUDE_MODEL  || 'claude-haiku-4-5-20251001',
       openai: process.env.OPENAI_MODEL  || 'gpt-5.4-mini',
     };

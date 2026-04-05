@@ -37,7 +37,7 @@ router.get('/', (req, res) => {
     openai_api_key:     openaiSource !== 'none' ? '••••••••' : '',
 
     // Ausgewählte Modelle (env > DB > default)
-    gemini_model: process.env.GEMINI_MODEL || dbMap.gemini_model || 'gemini-2.5-flash',
+    gemini_model: process.env.GEMINI_MODEL || dbMap.gemini_model || 'gemini-2.5-flash-lite',
     claude_model: process.env.CLAUDE_MODEL  || dbMap.claude_model  || 'claude-haiku-4-5-20251001',
     openai_model: process.env.OPENAI_MODEL  || dbMap.openai_model  || 'gpt-5.4-mini',
   });
