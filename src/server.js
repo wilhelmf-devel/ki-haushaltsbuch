@@ -101,17 +101,31 @@ app.get('/api/image/:filename', (req, res) => {
   res.sendFile(vollPfad);
 });
 
-// Job-Queue Statusabfrage
+// Job-Queue Statusabfrage (nur aktive Jobs – failed wird direkt am Beleg angezeigt)
 app.get('/api/jobs', (req, res) => {
   const jobs = db.prepare(`
     SELECT j.*, r.store_name, r.receipt_date
     FROM jobs j
     LEFT JOIN receipts r ON r.id = JSON_EXTRACT(j.payload, '$.receipt_id')
-    WHERE j.status IN ('pending', 'processing', 'failed')
+    WHERE j.status IN ('pending', 'processing')
     ORDER BY j.created_at DESC
     LIMIT 50
   `).all();
   res.json(jobs);
+});
+
+// OCR für einen fehlgeschlagenen Beleg neu starten
+app.post('/api/receipts/:id/retry-ocr', (req, res) => {
+  const receipt = db.prepare('SELECT * FROM receipts WHERE id = ?').get(req.params.id);
+  if (!receipt) return res.status(404).json({ error: 'Beleg nicht gefunden' });
+  if (!receipt.image_path) return res.status(400).json({ error: 'Kein Bild vorhanden – OCR nicht möglich' });
+
+  db.prepare(`UPDATE receipts SET ocr_status = 'pending', updated_at = CURRENT_TIMESTAMP WHERE id = ?`).run(receipt.id);
+  db.prepare(`INSERT INTO jobs (type, status, payload) VALUES ('ocr', 'pending', ?)`).run(
+    JSON.stringify({ receipt_id: receipt.id, image_path: path.join(UPLOAD_DIR, receipt.image_path) })
+  );
+
+  res.json({ success: true });
 });
 
 // Fehlgeschlagenen Job neu starten
@@ -161,6 +175,15 @@ app.get('*', (req, res) => {
 // Server starten
 app.listen(PORT, () => {
   console.log(`[Server] Haushaltsbuch läuft auf Port ${PORT}`);
+
+  // Stuck 'processing' Jobs von einem vorherigen Absturz zurücksetzen
+  const stuck = db.prepare(
+    `UPDATE jobs SET status = 'pending', updated_at = CURRENT_TIMESTAMP WHERE status = 'processing'`
+  ).run();
+  if (stuck.changes > 0) {
+    console.log(`[Server] ${stuck.changes} hängende Job(s) auf 'pending' zurückgesetzt`);
+  }
+
   starteWorker();
 
   // Falls Kategorie-Migration stattfand: alle Mandanten automatisch neu kategorisieren

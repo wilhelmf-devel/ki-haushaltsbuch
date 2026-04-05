@@ -48,6 +48,7 @@ export const api = {
   deleteReceiptItem: (id, itemId) => apiFetch(`/api/receipts/${id}/items/${itemId}`, { method: 'DELETE' }),
   addReceiptItem: (id, data) => apiFetch(`/api/receipts/${id}/items`, { method: 'POST', body: JSON.stringify(data) }),
   deleteReceipt: (id) => apiFetch(`/api/receipts/${id}`, { method: 'DELETE' }),
+  retryReceiptOcr: (id) => apiFetch(`/api/receipts/${id}/retry-ocr`, { method: 'POST' }),
 
   // Upload
   upload: (formData) => fetch('/api/upload', { method: 'POST', body: formData }).then(async (res) => {

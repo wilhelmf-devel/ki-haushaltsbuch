@@ -49,7 +49,7 @@ export async function renderReceiptDetail(container, tenantId, params = {}) {
 
       <!-- Kopfdaten direkt editierbar -->
       <div class="card">
-        <div class="form-row">
+        <div class="form-row" style="grid-template-columns:140px 1fr">
           <div class="form-group">
             <label>Datum</label>
             <input type="date" id="edit-datum" value="${(receipt.receipt_date || '').slice(0, 10)}">
@@ -74,7 +74,12 @@ export async function renderReceiptDetail(container, tenantId, params = {}) {
             </span>
           </div>
         </div>
-        <button class="btn btn-primary btn-sm" id="save-edit-btn" style="margin-top:6px">Speichern</button>
+        <div style="display:flex;gap:8px;margin-top:6px">
+          <button class="btn btn-primary btn-sm" id="save-edit-btn">Speichern</button>
+          ${receipt.ocr_status === 'failed' ? `
+            <button class="btn btn-secondary btn-sm" id="retry-ocr-btn">🔄 OCR erneut versuchen</button>
+          ` : ''}
+        </div>
       </div>
 
       <!-- Positions-Liste -->
@@ -154,16 +159,15 @@ export async function renderReceiptDetail(container, tenantId, params = {}) {
           const itemId = saveBtn.dataset.itemId;
           const row = saveBtn.closest('.item-row-wrap');
           const desc  = row.querySelector('.edit-desc').value.trim();
-          const qty   = row.querySelector('.edit-qty').value;
-          const up    = row.querySelector('.edit-up').value;
-          const tp    = row.querySelector('.edit-tp').value;
+          const qty   = parseFloat(row.querySelector('.edit-qty').value) || 1;
+          const up    = parseFloat(row.querySelector('.edit-up').value) || 0;
           if (!desc) { zeigeToast('Beschreibung darf nicht leer sein', 'error'); return; }
           try {
             await api.updateReceiptItem(id, itemId, {
               description: desc,
-              quantity: parseFloat(qty) || 1,
-              unit_price: parseFloat(up) || 0,
-              total_price: parseFloat(tp) || 0,
+              quantity: qty,
+              unit_price: up,
+              total_price: qty * up,
             });
             const fresh = await api.getReceipt(id);
             aktualisiereItemsKarte(fresh.items);
@@ -182,11 +186,12 @@ export async function renderReceiptDetail(container, tenantId, params = {}) {
         div.id = neuId;
         div.style.cssText = 'padding:8px 0;border-top:1px solid var(--border);margin-top:4px';
         div.innerHTML = `
-          <div style="display:grid;grid-template-columns:1fr auto auto auto;gap:6px;align-items:center;margin-bottom:6px">
-            <input class="new-desc" placeholder="Beschreibung" style="padding:6px;border:1px solid var(--border);border-radius:6px;background:var(--bg-input);color:var(--text);font-size:0.85rem">
-            <input class="new-qty" type="number" step="0.001" value="1" placeholder="Menge" style="width:60px;padding:6px;border:1px solid var(--border);border-radius:6px;background:var(--bg-input);color:var(--text);font-size:0.85rem">
-            <input class="new-up" type="number" step="0.01" value="0.00" placeholder="Preis/Stk" style="width:80px;padding:6px;border:1px solid var(--border);border-radius:6px;background:var(--bg-input);color:var(--text);font-size:0.85rem">
-            <input class="new-tp" type="number" step="0.01" value="0.00" placeholder="Gesamt" style="width:80px;padding:6px;border:1px solid var(--border);border-radius:6px;background:var(--bg-input);color:var(--text);font-size:0.85rem">
+          <div style="margin-bottom:6px">
+            <input class="new-desc" placeholder="Beschreibung" style="width:100%;box-sizing:border-box;padding:6px;border:1px solid var(--border);border-radius:6px;background:var(--bg-input);color:var(--text);font-size:0.85rem">
+          </div>
+          <div style="display:flex;gap:6px;margin-bottom:6px">
+            <input class="new-qty" type="number" step="0.001" value="1" placeholder="Menge" style="width:70px;padding:6px;border:1px solid var(--border);border-radius:6px;background:var(--bg-input);color:var(--text);font-size:0.85rem">
+            <input class="new-up" type="number" step="0.01" value="0.00" placeholder="Preis/Stk" style="flex:1;padding:6px;border:1px solid var(--border);border-radius:6px;background:var(--bg-input);color:var(--text);font-size:0.85rem">
           </div>
           <div style="display:flex;gap:6px">
             <button class="btn btn-primary btn-sm" id="new-item-save-btn">Hinzufügen</button>
@@ -201,7 +206,7 @@ export async function renderReceiptDetail(container, tenantId, params = {}) {
           const desc = div.querySelector('.new-desc').value.trim();
           const qty  = parseFloat(div.querySelector('.new-qty').value) || 1;
           const up   = parseFloat(div.querySelector('.new-up').value) || 0;
-          const tp   = parseFloat(div.querySelector('.new-tp').value) || up * qty;
+          const tp   = qty * up;
           if (!desc) { zeigeToast('Beschreibung darf nicht leer sein', 'error'); return; }
           try {
             await api.addReceiptItem(id, { description: desc, quantity: qty, unit_price: up, total_price: tp });
@@ -236,6 +241,16 @@ export async function renderReceiptDetail(container, tenantId, params = {}) {
         const fresh = await api.getReceipt(id);
         aktualisiereMismatchBanner(fresh);
         zeigeToast('Gespeichert!', 'success');
+      } catch (err) {
+        zeigeToast(`Fehler: ${err.message}`, 'error');
+      }
+    });
+
+    document.getElementById('retry-ocr-btn')?.addEventListener('click', async () => {
+      try {
+        await api.retryReceiptOcr(id);
+        zeigeToast('OCR neu gestartet – bitte warte einen Moment', 'success');
+        navigiere('receipts');
       } catch (err) {
         zeigeToast(`Fehler: ${err.message}`, 'error');
       }
@@ -283,15 +298,15 @@ function renderItemZeile(item, kategorien) {
       </div>
       <!-- Edit-Formular (versteckt) -->
       <div class="item-edit hidden" style="padding-top:6px">
-        <div style="display:grid;grid-template-columns:1fr auto auto auto;gap:6px;align-items:center;margin-bottom:6px">
+        <div style="margin-bottom:6px">
           <input class="edit-desc" value="${item.description.replace(/"/g, '&quot;')}" placeholder="Beschreibung"
-            style="padding:6px;border:1px solid var(--border);border-radius:6px;background:var(--bg-input);color:var(--text);font-size:0.85rem">
+            style="width:100%;box-sizing:border-box;padding:6px;border:1px solid var(--border);border-radius:6px;background:var(--bg-input);color:var(--text);font-size:0.85rem">
+        </div>
+        <div style="display:flex;gap:6px;margin-bottom:6px">
           <input class="edit-qty" type="number" step="0.001" value="${item.quantity ?? 1}" placeholder="Menge"
-            style="width:60px;padding:6px;border:1px solid var(--border);border-radius:6px;background:var(--bg-input);color:var(--text);font-size:0.85rem">
+            style="width:70px;padding:6px;border:1px solid var(--border);border-radius:6px;background:var(--bg-input);color:var(--text);font-size:0.85rem">
           <input class="edit-up" type="number" step="0.01" value="${(item.unit_price ?? 0).toFixed(2)}" placeholder="Preis/Stk"
-            style="width:80px;padding:6px;border:1px solid var(--border);border-radius:6px;background:var(--bg-input);color:var(--text);font-size:0.85rem">
-          <input class="edit-tp" type="number" step="0.01" value="${(item.total_price ?? 0).toFixed(2)}" placeholder="Gesamt"
-            style="width:80px;padding:6px;border:1px solid var(--border);border-radius:6px;background:var(--bg-input);color:var(--text);font-size:0.85rem">
+            style="flex:1;padding:6px;border:1px solid var(--border);border-radius:6px;background:var(--bg-input);color:var(--text);font-size:0.85rem">
         </div>
         <div style="display:flex;gap:6px">
           <button class="item-save-btn btn btn-primary btn-sm" data-item-id="${item.id}">💾 Speichern</button>
