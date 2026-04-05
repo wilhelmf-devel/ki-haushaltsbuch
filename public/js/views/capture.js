@@ -83,7 +83,7 @@ export async function renderCapture(container, tenantId) {
     <!-- Tab: Manuelle Eingabe -->
     <div id="tab-manuell" class="tab-content hidden">
       <div class="card">
-        <div class="form-row" style="grid-template-columns:140px 1fr">
+        <div class="form-row" style="grid-template-columns:140px 1fr;align-items:end">
           <div class="form-group">
             <label>Datum</label>
             <input type="date" id="manuell-datum" value="${heuteStr}" required>

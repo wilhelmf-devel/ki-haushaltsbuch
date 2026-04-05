@@ -53,7 +53,7 @@ export async function renderReceiptDetail(container, tenantId, params = {}) {
 
       <!-- Kopfdaten direkt editierbar -->
       <div class="card">
-        <div class="form-row" style="grid-template-columns:140px 1fr">
+        <div class="form-row" style="grid-template-columns:140px 1fr;align-items:end">
           <div class="form-group">
             <label>Datum</label>
             <input type="date" id="edit-datum" value="${(receipt.receipt_date || '').slice(0, 10)}">

@@ -1,0 +1,21 @@
+Lass uns das tool internationaler machen.
+Die UI soll Folgende Sprachen Unterstützen
+Deutsch
+Englisch
+Spanisch
+Französisch
+Italienisch
+
+Inital basierend auf Browser Sprache würde ich vorschlagen
+
+Aber wie machen wir das mit den Kategorien?
+Er soll auf jeden Fall nicht neu idizieren, wenn mal die Browsersprache wechselt. 
+
+Bevor Du loslegst lass uns alle offenen Fragen klären und die Konsequenzen besprechen.
+
+--------------------------------
+
+Andere Zukünfitge Dinger
+
+Authentifizierung (vom Webserver) aber user sollten bereiche zugeordnet werden - gesharte sollten möglich sein
+
