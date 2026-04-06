@@ -19,7 +19,7 @@ try {
   const stuckJobs = db.prepare(`
     SELECT COUNT(*) AS c FROM jobs
     WHERE status = 'processing'
-      AND updated_at < datetime('now', '-5 minutes')
+      AND updated_at < datetime('now', '-30 minutes')
   `).get();
 
   db.close();
