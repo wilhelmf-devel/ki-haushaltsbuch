@@ -488,6 +488,16 @@ body {
 .upload-text { color: var(--text-secondary); font-size: 0.9rem; }
 .upload-input { display: none; }
 
+/* Drag-hint only on devices that support hover (= desktop) */
+.upload-drag-hint {
+  display: none;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+@media (hover: hover) {
+  .upload-drag-hint { display: block; }
+}
+
 /* ===== CATEGORY BADGE ===== */
 
 .category-badge {

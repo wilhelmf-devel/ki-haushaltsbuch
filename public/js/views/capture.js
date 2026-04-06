@@ -39,11 +39,20 @@ export async function renderCapture(container, tenantId) {
     <!-- Tab: Foto/PDF Upload -->
     <div id="tab-foto" class="tab-content">
       <div class="upload-area" id="upload-area">
-        <div class="upload-icon">📷</div>
-        <p class="upload-text">Foto aufnehmen oder Datei auswählen</p>
-        <p style="font-size:0.75rem;color:var(--text-secondary);margin-top:8px">JPG, PNG, WebP, HEIC, PDF – max. ${window._maxMB || 25}MB</p>
-        <input type="file" class="upload-input" id="file-input"
-          accept="image/*,application/pdf">
+        <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:16px">
+          <button type="button" class="btn btn-primary" id="camera-btn" style="font-size:1rem;padding:12px 22px">
+            📷 Foto aufnehmen
+          </button>
+          <button type="button" class="btn btn-secondary" id="file-btn" style="font-size:1rem;padding:12px 22px">
+            📁 Mediathek / Datei
+          </button>
+        </div>
+        <p class="upload-drag-hint">oder Datei hier ablegen</p>
+        <p style="font-size:0.75rem;color:var(--text-secondary);margin-top:6px">JPG, PNG, WebP, HEIC, PDF – max. ${window._maxMB || 25}MB</p>
+        <!-- Kamera: direkt zur Kamera-App -->
+        <input type="file" id="file-input-camera" accept="image/*" capture="environment" style="display:none">
+        <!-- Datei: Mediathek + Dateien App + Drag & Drop -->
+        <input type="file" id="file-input-file" accept="image/*,application/pdf" style="display:none">
       </div>
       <div id="upload-progress" class="hidden" style="text-align:center;padding:20px">
         <div class="spinner"></div>
@@ -128,12 +137,22 @@ export async function renderCapture(container, tenantId) {
   });
 
   // ===== FOTO UPLOAD =====
-  const uploadArea = document.getElementById('upload-area');
-  const fileInput = document.getElementById('file-input');
+  const uploadArea     = document.getElementById('upload-area');
+  const inputCamera    = document.getElementById('file-input-camera');
+  const inputFile      = document.getElementById('file-input-file');
   const uploadProgress = document.getElementById('upload-progress');
 
-  uploadArea.addEventListener('click', () => fileInput.click());
+  const resetInputs = () => { inputCamera.value = ''; inputFile.value = ''; };
 
+  // Kamera-Button → direkt Kamera öffnen
+  document.getElementById('camera-btn').addEventListener('click', () => inputCamera.click());
+  // Datei-Button → Mediathek / Dateien App
+  document.getElementById('file-btn').addEventListener('click', () => inputFile.click());
+
+  inputCamera.addEventListener('change', () => { if (inputCamera.files[0]) starteUpload(inputCamera.files[0]); });
+  inputFile.addEventListener('change',   () => { if (inputFile.files[0])   starteUpload(inputFile.files[0]);   });
+
+  // Drag & Drop (Desktop)
   uploadArea.addEventListener('dragover', (e) => {
     e.preventDefault();
     uploadArea.classList.add('drag-over');
@@ -146,27 +165,20 @@ export async function renderCapture(container, tenantId) {
     if (file) starteUpload(file);
   });
 
-  fileInput.addEventListener('change', () => {
-    if (fileInput.files[0]) starteUpload(fileInput.files[0]);
-  });
-
   async function starteUpload(file) {
     uploadArea.classList.add('hidden');
     uploadProgress.classList.remove('hidden');
 
     if (!navigator.onLine) {
-      // Offline: In Queue speichern
       try {
         await queueUpload(file, tenantId, heuteStr);
         zeigeToast('Offline gespeichert – wird automatisch hochgeladen wenn Verbindung besteht.', 'info');
-        uploadArea.classList.remove('hidden');
-        uploadProgress.classList.add('hidden');
-        fileInput.value = '';
       } catch (err) {
         zeigeToast(`Fehler: ${err.message}`, 'error');
-        uploadArea.classList.remove('hidden');
-        uploadProgress.classList.add('hidden');
       }
+      uploadArea.classList.remove('hidden');
+      uploadProgress.classList.add('hidden');
+      resetInputs();
       return;
     }
 
@@ -183,7 +195,7 @@ export async function renderCapture(container, tenantId) {
       zeigeToast(`Upload-Fehler: ${err.message}`, 'error');
       uploadArea.classList.remove('hidden');
       uploadProgress.classList.add('hidden');
-      fileInput.value = '';
+      resetInputs();
     }
   }
 
