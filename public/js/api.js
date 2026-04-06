@@ -79,6 +79,15 @@ export const api = {
   getSettings: () => apiFetch('/api/settings'),
   saveSettings: (data) => apiFetch('/api/settings', { method: 'POST', body: JSON.stringify(data) }),
 
+  // Auth / aktueller Benutzer
+  getMe: () => apiFetch('/api/me'),
+
+  // Admin – Benutzerverwaltung
+  getAdminUsers:  () => apiFetch('/api/admin/users'),
+  createUser:     (username) => apiFetch('/api/admin/users', { method: 'POST', body: JSON.stringify({ username }) }),
+  assignTenant:   (username, tenantId) => apiFetch(`/api/admin/users/${encodeURIComponent(username)}/tenants/${tenantId}`, { method: 'POST' }),
+  unassignTenant: (username, tenantId) => apiFetch(`/api/admin/users/${encodeURIComponent(username)}/tenants/${tenantId}`, { method: 'DELETE' }),
+
   // Image
   getImageUrl: (filename) => `/api/image/${filename}`,
 };

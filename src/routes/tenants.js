@@ -4,9 +4,19 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
+const { isAuthActive } = require('../middleware/auth');
 
-// Alle Mandanten
+// Alle Mandanten (gefiltert nach Benutzer wenn Auth aktiv)
 router.get('/', (req, res) => {
+  if (isAuthActive() && req.user) {
+    const mandanten = db.prepare(`
+      SELECT t.* FROM tenants t
+      JOIN user_tenants ut ON ut.tenant_id = t.id
+      WHERE ut.username = ?
+      ORDER BY t.id
+    `).all(req.user.username);
+    return res.json(mandanten);
+  }
   const mandanten = db.prepare('SELECT * FROM tenants ORDER BY id').all();
   res.json(mandanten);
 });
@@ -17,7 +27,16 @@ router.post('/', (req, res) => {
   if (!name) return res.status(400).json({ error: 'name erforderlich' });
 
   const result = db.prepare('INSERT INTO tenants (name) VALUES (?)').run(name);
-  res.status(201).json({ id: result.lastInsertRowid });
+  const newId = result.lastInsertRowid;
+
+  // Bei aktivem Auth: neuen Mandanten dem erstellenden Benutzer automatisch zuweisen
+  if (isAuthActive() && req.user) {
+    db.prepare('INSERT OR IGNORE INTO user_tenants (username, tenant_id) VALUES (?, ?)').run(
+      req.user.username, newId
+    );
+  }
+
+  res.status(201).json({ id: newId });
 });
 
 // Mandant bearbeiten

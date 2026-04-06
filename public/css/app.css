@@ -165,6 +165,21 @@ body {
 .nav-icon { font-size: 1.3rem; }
 .nav-label { font-size: 0.7rem; font-weight: 500; }
 
+/* ===== USER CHIP ===== */
+
+.user-chip {
+  font-size: 0.75rem;
+  background: rgba(255,255,255,0.18);
+  border: 1px solid rgba(255,255,255,0.3);
+  color: white;
+  border-radius: 20px;
+  padding: 3px 10px;
+  white-space: nowrap;
+  max-width: 110px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 /* ===== TENANT SELECT ===== */
 
 .tenant-select {

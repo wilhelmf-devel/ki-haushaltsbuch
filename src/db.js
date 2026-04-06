@@ -235,6 +235,20 @@ function migrateKategorien() {
 // Gibt true zurück wenn eine Migration stattfand (→ Worker triggert Neukategorisierung)
 db.kategorienMigriert = migrateKategorien();
 
+// Auth-Tabellen (optional – nur bei aktivem AUTH_HEADER Feature genutzt)
+db.exec(`
+  CREATE TABLE IF NOT EXISTS known_users (
+    username TEXT PRIMARY KEY,
+    first_seen_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+
+  CREATE TABLE IF NOT EXISTS user_tenants (
+    username TEXT NOT NULL,
+    tenant_id INTEGER NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+    PRIMARY KEY (username, tenant_id)
+  );
+`);
+
 // UNIQUE-Constraint auf (tenant_id, name) nachrüsten + Duplikate bereinigen
 function migrateKategorienUniqueConstraint() {
   const hatConstraint = db.prepare(

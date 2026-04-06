@@ -46,13 +46,27 @@ const upload = multer({
   },
 });
 
+// Auth-Middleware (nur für API-Routen, statische Dateien bleiben unberührt)
+const { authMiddleware, isAuthActive } = require('./middleware/auth');
+app.use('/api', authMiddleware);
+
+// Aktueller Benutzer + Auth-Status
+app.get('/api/me', (req, res) => {
+  res.json({
+    authActive: isAuthActive(),
+    username:   req.user?.username || null,
+    isAdmin:    req.user?.isAdmin  || false,
+  });
+});
+
 // API-Routen einbinden
-app.use('/api/receipts', require('./routes/receipts'));
+app.use('/api/receipts',  require('./routes/receipts'));
 app.use('/api/categories', require('./routes/categories'));
-app.use('/api/tenants', require('./routes/tenants'));
-app.use('/api/stats', require('./routes/stats'));
-app.use('/api/export', require('./routes/export'));
-app.use('/api/settings', require('./routes/settings'));
+app.use('/api/tenants',   require('./routes/tenants'));
+app.use('/api/stats',     require('./routes/stats'));
+app.use('/api/export',    require('./routes/export'));
+app.use('/api/settings',  require('./routes/settings'));
+app.use('/api/admin',     require('./routes/admin'));
 
 // App-Version für Cache-Busting (SW vergleicht beim Aktivieren)
 const { version } = require('../package.json');

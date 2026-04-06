@@ -2,7 +2,7 @@
 'use strict';
 
 import { api } from '../api.js';
-import { zeigeToast } from '../app.js';
+import { zeigeToast, navigiere } from '../app.js';
 
 // Verfügbare Modelle pro Provider
 const MODELLE = {
@@ -51,7 +51,7 @@ function renderModelSelect(id, provider, currentModel) {
   `;
 }
 
-export async function renderSettings(container, tenantId, onTenantChange) {
+export async function renderSettings(container, tenantId, onTenantChange, currentUser = {}) {
   container.innerHTML = '<div class="loading-state"><div class="spinner"></div></div>';
 
   try {
@@ -168,6 +168,19 @@ export async function renderSettings(container, tenantId, onTenantChange) {
         </div>
       </div>
 
+      ${currentUser.authActive && currentUser.isAdmin ? `
+      <!-- Benutzerverwaltung (nur für Admins sichtbar wenn Auth aktiv) -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">👥 Benutzerverwaltung</span>
+        </div>
+        <p style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:12px">
+          Benutzer Mandanten zuweisen. Nur Admins haben Zugriff auf diese Seite.
+        </p>
+        <button class="btn btn-secondary" id="open-user-mgmt-btn">Benutzerverwaltung öffnen →</button>
+      </div>
+      ` : ''}
+
       <!-- Kategorien -->
       <div class="card">
         <div class="card-header">
@@ -274,6 +287,11 @@ export async function renderSettings(container, tenantId, onTenantChange) {
     `;
 
     // ===== EVENT LISTENER =====
+
+    // Benutzerverwaltung öffnen (Admin-Link)
+    document.getElementById('open-user-mgmt-btn')?.addEventListener('click', () => {
+      navigiere('user-management');
+    });
 
     // Mandant anlegen
     document.getElementById('new-tenant-btn').addEventListener('click', () => {

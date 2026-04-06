@@ -123,6 +123,43 @@ on activation to detect deploys and clear stale caches automatically.
 
 ---
 
+### Optional authentication via reverse proxy
+
+The app supports an optional authentication layer that is **inactive by default**.
+It activates only when `AUTH_HEADER` is set in `.env`.
+
+**How it works:**
+- The actual authentication is handled entirely by the reverse proxy (nginx, Traefik, Caddy …).
+  The app trusts the proxy and reads the username from a configured HTTP header (e.g. `X-Forwarded-User`).
+- If the header is present → user is identified, app continues.
+- If the header is **missing** → `403 Forbidden` (direct access bypassing the proxy is blocked).
+- When the feature is **inactive** (no `AUTH_HEADER`) the app behaves exactly as before:
+  no access control, all tenants visible to everyone.
+
+**Roles:**
+- `AUTH_ADMINS` (comma-separated list) defines admin usernames.
+- Admins have access to the user management page (`/api/admin/*`).
+- In normal operation, admins see only their assigned tenants (same as regular users).
+- On the user management page, admins see all tenants.
+
+**Tenant assignment:**
+- New users (no assignments) can create a new tenant, which is auto-assigned to them.
+- A user may be assigned multiple tenants; multiple users may share the same tenant.
+- DB table `user_tenants (username, tenant_id)`.
+- DB table `known_users (username, first_seen_at)` — populated on first login.
+
+**Bootstrap (first run with existing data):**
+When `user_tenants` is empty but tenants already exist, the first admin to log in receives all existing tenants automatically.
+
+**Env vars:**
+
+| Variable | Description |
+|---|---|
+| `AUTH_HEADER` | HTTP header name carrying the username (e.g. `X-Forwarded-User`). If not set, auth is inactive. |
+| `AUTH_ADMINS` | Comma-separated list of admin usernames (e.g. `alice,bob`). |
+
+---
+
 ## What this app is NOT
 
 - Not a multi-user system (no login, no access control)

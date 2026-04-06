@@ -9,6 +9,7 @@ let aktiverMandant = null;
 let aktiverView = null;
 let aktiverViewParams = {};
 let mandanten = [];
+let currentUser = { authActive: false, username: null, isAdmin: false };
 
 // ===== TOASTS =====
 export function zeigeToast(nachricht, typ = 'info') {
@@ -84,7 +85,12 @@ async function ladeView() {
         const { renderSettings } = await import('./views/settings.js');
         await renderSettings(container, tenantId, () => {
           ladeUndRendereMandanten();
-        });
+        }, currentUser);
+        break;
+      }
+      case 'user-management': {
+        const { renderUserManagement } = await import('./views/user-management.js');
+        await renderUserManagement(container, currentUser);
         break;
       }
       default:
@@ -164,6 +170,18 @@ function leseHashRoute() {
 
 // ===== INIT =====
 async function init() {
+  // Auth-Status laden + Username-Chip anzeigen
+  try {
+    currentUser = await api.getMe();
+    if (currentUser.authActive && currentUser.username) {
+      const chip = document.getElementById('user-chip');
+      if (chip) {
+        chip.textContent = '👤 ' + currentUser.username;
+        chip.classList.remove('hidden');
+      }
+    }
+  } catch { /* Auth nicht verfügbar – unkritisch */ }
+
   // Setup-Overlay oder Hauptlayout zeigen
   const hatMandanten = await ladeUndRendereMandanten();
 
