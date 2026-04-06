@@ -46,6 +46,10 @@ const upload = multer({
   },
 });
 
+// App-Version für Cache-Busting (SW vergleicht beim Aktivieren) – vor Auth, damit Healthcheck durchkommt
+const { version } = require('../package.json');
+app.get('/api/version', (req, res) => res.json({ version }));
+
 // Auth-Middleware (nur für API-Routen, statische Dateien bleiben unberührt)
 const { authMiddleware, isAuthActive } = require('./middleware/auth');
 app.use('/api', authMiddleware);
@@ -68,9 +72,6 @@ app.use('/api/export',    require('./routes/export'));
 app.use('/api/settings',  require('./routes/settings'));
 app.use('/api/admin',     require('./routes/admin'));
 
-// App-Version für Cache-Busting (SW vergleicht beim Aktivieren)
-const { version } = require('../package.json');
-app.get('/api/version', (req, res) => res.json({ version }));
 
 // Datei-Upload-Route
 app.post('/api/upload', upload.single('file'), (req, res) => {
