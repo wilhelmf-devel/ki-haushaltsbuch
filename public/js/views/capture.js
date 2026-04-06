@@ -43,7 +43,7 @@ export async function renderCapture(container, tenantId) {
         <p class="upload-text">Foto aufnehmen oder Datei auswählen</p>
         <p style="font-size:0.75rem;color:var(--text-secondary);margin-top:8px">JPG, PNG, WebP, HEIC, PDF – max. ${window._maxMB || 25}MB</p>
         <input type="file" class="upload-input" id="file-input"
-          accept="image/*,application/pdf" capture="environment">
+          accept="image/*,application/pdf">
       </div>
       <div id="upload-progress" class="hidden" style="text-align:center;padding:20px">
         <div class="spinner"></div>
