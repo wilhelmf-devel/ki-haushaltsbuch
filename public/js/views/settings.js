@@ -314,6 +314,48 @@ export async function renderSettings(container, tenantId, onTenantChange, curren
       }
     });
 
+    // Mandant umbenennen
+    document.getElementById('tenants-list').addEventListener('click', async (e) => {
+      const edit = e.target.closest('.tenant-edit');
+      if (!edit) return;
+
+      const row = edit.closest('.item-row');
+      const id = edit.dataset.id;
+      const currentName = edit.dataset.name;
+
+      // Inline-Eingabe einblenden
+      row.innerHTML = `
+        <input type="text" class="search-input tenant-rename-input" value="${currentName.replace(/"/g, '&quot;')}" style="flex:1">
+        <button class="btn btn-primary btn-sm tenant-rename-save">✓</button>
+        <button class="btn btn-secondary btn-sm tenant-rename-cancel">✕</button>
+      `;
+      const input = row.querySelector('.tenant-rename-input');
+      input.focus();
+      input.select();
+
+      row.querySelector('.tenant-rename-save').addEventListener('click', async () => {
+        const newName = input.value.trim();
+        if (!newName) return;
+        try {
+          await api.updateTenant(id, { name: newName });
+          zeigeToast('Mandant umbenannt', 'success');
+          onTenantChange?.();
+          renderSettings(container, tenantId, onTenantChange, currentUser);
+        } catch (err) {
+          zeigeToast(err.message, 'error');
+        }
+      });
+
+      input.addEventListener('keydown', (ev) => {
+        if (ev.key === 'Enter') row.querySelector('.tenant-rename-save').click();
+        if (ev.key === 'Escape') renderSettings(container, tenantId, onTenantChange, currentUser);
+      });
+
+      row.querySelector('.tenant-rename-cancel').addEventListener('click', () => {
+        renderSettings(container, tenantId, onTenantChange, currentUser);
+      });
+    });
+
     // Mandant löschen
     document.getElementById('tenants-list').addEventListener('click', async (e) => {
       const del = e.target.closest('.tenant-del');
@@ -323,7 +365,7 @@ export async function renderSettings(container, tenantId, onTenantChange, curren
         await api.deleteTenant(del.dataset.id);
         zeigeToast('Mandant gelöscht', 'success');
         onTenantChange?.();
-        renderSettings(container, tenantId, onTenantChange);
+        renderSettings(container, tenantId, onTenantChange, currentUser);
       } catch (err) {
         zeigeToast(err.message, 'error');
       }
