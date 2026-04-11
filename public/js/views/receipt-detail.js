@@ -46,6 +46,7 @@ export async function renderReceiptDetail(container, tenantId, params = {}) {
             id="receipt-image">
           <a href="${api.getImageUrl(receipt.image_path)}"
             download="${receipt.image_path}"
+            target="_blank"
             style="position:absolute;bottom:8px;right:8px;background:rgba(0,0,0,0.55);color:#fff;border-radius:6px;padding:4px 10px;font-size:0.8rem;text-decoration:none"
             title="Bild herunterladen">⬇ Download</a>
         </div>
@@ -232,6 +233,7 @@ export async function renderReceiptDetail(container, tenantId, params = {}) {
       document.getElementById('receipt-image').addEventListener('click', () => {
         zeigeBild(api.getImageUrl(receipt.image_path));
       });
+
     }
 
     document.getElementById('save-edit-btn').addEventListener('click', async () => {
