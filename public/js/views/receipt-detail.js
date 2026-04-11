@@ -44,11 +44,6 @@ export async function renderReceiptDetail(container, tenantId, params = {}) {
             alt="Beleg-Bild"
             style="width:100%;max-height:200px;object-fit:contain;border-radius:var(--radius);cursor:pointer;background:var(--bg)"
             id="receipt-image">
-          <a href="${api.getImageUrl(receipt.image_path)}"
-            download="${receipt.image_path}"
-            target="_blank"
-            style="position:absolute;bottom:8px;right:8px;background:rgba(0,0,0,0.55);color:#fff;border-radius:6px;padding:4px 10px;font-size:0.8rem;text-decoration:none"
-            title="Bild herunterladen">⬇ Download</a>
         </div>
       ` : ''}
 
