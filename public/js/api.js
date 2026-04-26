@@ -9,9 +9,58 @@ function queryStr(params) {
   );
 }
 
-function redirectToLogin() {
-  window.location.href = '/oauth2/sign_in?rd=' + encodeURIComponent(location.href);
-  return new Promise(() => {});
+let _loginOverlayActive = false;
+
+// On iOS PWA, window.location.href to an external IdP breaks out of the WKWebView into Safari.
+// Instead: show an overlay, open OAuth in a new tab, poll until the cookie is set, then resume.
+function showLoginOverlay() {
+  if (_loginOverlayActive) return new Promise(() => {});
+  _loginOverlayActive = true;
+
+  const overlay = document.createElement('div');
+  overlay.style.cssText = [
+    'position:fixed', 'inset:0', 'background:rgba(0,0,0,0.88)',
+    'display:flex', 'flex-direction:column', 'align-items:center',
+    'justify-content:center', 'z-index:9999', 'padding:2rem',
+    'font-family:-apple-system,BlinkMacSystemFont,sans-serif', 'color:#fff', 'text-align:center',
+  ].join(';');
+  overlay.innerHTML = `
+    <p style="font-size:1.25rem;font-weight:600;margin:0 0 0.5rem">Sitzung abgelaufen</p>
+    <p style="font-size:0.9rem;opacity:0.7;margin:0 0 1.5rem;max-width:18rem">
+      Bitte neu anmelden. Die App wird danach automatisch fortgesetzt.
+    </p>
+    <button id="_oauth_btn" style="
+      background:#2563eb;color:#fff;border:none;border-radius:10px;
+      padding:0.75rem 2.5rem;font-size:1rem;cursor:pointer;
+    ">Anmelden</button>
+    <p id="_oauth_status" style="margin-top:1rem;font-size:0.85rem;opacity:0.6;min-height:1.2em"></p>
+  `;
+  document.body.appendChild(overlay);
+
+  const btn = overlay.querySelector('#_oauth_btn');
+  const status = overlay.querySelector('#_oauth_status');
+
+  btn.addEventListener('click', () => {
+    window.open('/oauth2/sign_in?rd=' + encodeURIComponent(location.origin + '/'), '_blank');
+    btn.disabled = true;
+    btn.style.opacity = '0.5';
+    status.textContent = 'Warte auf Anmeldung …';
+
+    const timer = setInterval(async () => {
+      try {
+        const res = await fetch('/api/me', { credentials: 'include' });
+        const ct = res.headers.get('content-type') || '';
+        if (res.ok && ct.includes('application/json')) {
+          clearInterval(timer);
+          _loginOverlayActive = false;
+          overlay.remove();
+          location.reload();
+        }
+      } catch {}
+    }, 2500);
+  });
+
+  return new Promise(() => {}); // never resolves – caller halts
 }
 
 export async function apiFetch(url, options = {}) {
@@ -22,14 +71,14 @@ export async function apiFetch(url, options = {}) {
 
   // Session expired: direct 401/403 from forwardAuth
   if (res.status === 401 || res.status === 403) {
-    return redirectToLogin();
+    return showLoginOverlay();
   }
 
   const contentType = res.headers.get('content-type') || '';
 
   // Session expired: Traefik errors-middleware served the OAuth sign-in HTML instead of JSON
   if (url.startsWith('/api/') && res.ok && contentType.includes('text/html')) {
-    return redirectToLogin();
+    return showLoginOverlay();
   }
 
   if (!res.ok) {
@@ -67,7 +116,7 @@ export const api = {
 
   // Upload
   upload: (formData) => fetch('/api/upload', { method: 'POST', body: formData }).then(async (res) => {
-    if (res.status === 401 || res.status === 403) return redirectToLogin();
+    if (res.status === 401 || res.status === 403) return showLoginOverlay();
     if (!res.ok) {
       const json = await res.json().catch(() => ({}));
       throw new Error(json.error || `HTTP ${res.status}`);
