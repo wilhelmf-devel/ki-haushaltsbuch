@@ -199,6 +199,18 @@ app.listen(PORT, () => {
     console.log(`[Server] ${stuck.changes} hängende Job(s) auf 'pending' zurückgesetzt`);
   }
 
+  // Belege die noch 'processing' zeigen, obwohl kein aktiver Job mehr existiert
+  const stuckReceipts = db.prepare(`
+    UPDATE receipts SET ocr_status = 'pending', updated_at = CURRENT_TIMESTAMP
+    WHERE ocr_status = 'processing'
+    AND id NOT IN (
+      SELECT JSON_EXTRACT(payload, '$.receipt_id') FROM jobs WHERE status IN ('pending', 'processing')
+    )
+  `).run();
+  if (stuckReceipts.changes > 0) {
+    console.log(`[Server] ${stuckReceipts.changes} hängende Beleg(e) auf 'pending' zurückgesetzt`);
+  }
+
   starteWorker();
 
   // Falls Kategorie-Migration stattfand: alle Mandanten automatisch neu kategorisieren

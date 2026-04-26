@@ -37,13 +37,20 @@ export async function renderReceiptDetail(container, tenantId, params = {}) {
         ` : ''}
       </div>
 
-      <!-- Bild Vorschau -->
+      <!-- Bild/PDF Vorschau -->
       ${receipt.image_path ? `
         <div style="margin-bottom:12px;position:relative">
-          <img src="${api.getImageUrl(receipt.image_path)}"
-            alt="Beleg-Bild"
-            style="width:100%;max-height:200px;object-fit:contain;border-radius:var(--radius);cursor:pointer;background:var(--bg)"
-            id="receipt-image">
+          ${receipt.image_path.toLowerCase().endsWith('.pdf') ? `
+            <a href="${api.getImageUrl(receipt.image_path)}" download
+               class="btn btn-secondary btn-sm" style="display:inline-flex;align-items:center;gap:6px">
+              ⬇ PDF herunterladen
+            </a>
+          ` : `
+            <img src="${api.getImageUrl(receipt.image_path)}"
+              alt="Beleg-Bild"
+              style="width:100%;max-height:200px;object-fit:contain;border-radius:var(--radius);cursor:pointer;background:var(--bg)"
+              id="receipt-image">
+          `}
         </div>
       ` : ''}
 
@@ -224,11 +231,10 @@ export async function renderReceiptDetail(container, tenantId, params = {}) {
     // Event-Listener Header
     document.getElementById('back-btn').addEventListener('click', () => navigiere('receipts'));
 
-    if (receipt.image_path) {
+    if (receipt.image_path && !receipt.image_path.toLowerCase().endsWith('.pdf')) {
       document.getElementById('receipt-image').addEventListener('click', () => {
         zeigeBild(api.getImageUrl(receipt.image_path));
       });
-
     }
 
     document.getElementById('save-edit-btn').addEventListener('click', async () => {
