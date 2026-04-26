@@ -9,11 +9,28 @@ function queryStr(params) {
   );
 }
 
+function redirectToLogin() {
+  window.location.href = '/oauth2/sign_in?rd=' + encodeURIComponent(location.href);
+  return new Promise(() => {});
+}
+
 export async function apiFetch(url, options = {}) {
   const res = await fetch(url, {
     headers: { 'Content-Type': 'application/json', ...options.headers },
     ...options,
   });
+
+  // Session expired: direct 401/403 from forwardAuth
+  if (res.status === 401 || res.status === 403) {
+    return redirectToLogin();
+  }
+
+  const contentType = res.headers.get('content-type') || '';
+
+  // Session expired: Traefik errors-middleware served the OAuth sign-in HTML instead of JSON
+  if (url.startsWith('/api/') && res.ok && contentType.includes('text/html')) {
+    return redirectToLogin();
+  }
 
   if (!res.ok) {
     let message = `HTTP ${res.status}`;
@@ -24,9 +41,7 @@ export async function apiFetch(url, options = {}) {
     throw new Error(message);
   }
 
-  // Kein JSON bei leeren Antworten
-  const contentType = res.headers.get('content-type');
-  if (contentType && contentType.includes('application/json')) {
+  if (contentType.includes('application/json')) {
     return res.json();
   }
   return res;
@@ -52,6 +67,7 @@ export const api = {
 
   // Upload
   upload: (formData) => fetch('/api/upload', { method: 'POST', body: formData }).then(async (res) => {
+    if (res.status === 401 || res.status === 403) return redirectToLogin();
     if (!res.ok) {
       const json = await res.json().catch(() => ({}));
       throw new Error(json.error || `HTTP ${res.status}`);
