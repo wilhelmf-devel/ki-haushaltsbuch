@@ -104,33 +104,29 @@ async function ladeView() {
 
 // ===== MANDANTEN =====
 async function ladeUndRendereMandanten() {
-  try {
-    mandanten = await api.getTenants();
+  // Errors propagate to caller – caller decides if it's a fetch error or no tenants
+  mandanten = await api.getTenants();
 
-    const select = document.getElementById('tenant-select');
-    if (!select) return;
+  const select = document.getElementById('tenant-select');
+  if (!select) return mandanten.length > 0;
 
-    select.innerHTML = mandanten.map(t =>
-      `<option value="${t.id}">${t.name}</option>`
-    ).join('');
+  select.innerHTML = mandanten.map(t =>
+    `<option value="${t.id}">${t.name}</option>`
+  ).join('');
 
-    // Gespeicherten Mandanten laden
-    const gespeicherterMandant = localStorage.getItem('aktiverMandant');
-    const gefunden = gespeicherterMandant
-      ? mandanten.find(t => t.id === parseInt(gespeicherterMandant))
-      : null;
+  // Gespeicherten Mandanten laden
+  const gespeicherterMandant = localStorage.getItem('aktiverMandant');
+  const gefunden = gespeicherterMandant
+    ? mandanten.find(t => t.id === parseInt(gespeicherterMandant))
+    : null;
 
-    aktiverMandant = gefunden || mandanten[0] || null;
+  aktiverMandant = gefunden || mandanten[0] || null;
 
-    if (aktiverMandant) {
-      select.value = aktiverMandant.id;
-    }
-
-    return mandanten.length > 0;
-  } catch (err) {
-    console.error('[App] Mandanten laden fehlgeschlagen:', err);
-    return false;
+  if (aktiverMandant) {
+    select.value = aktiverMandant.id;
   }
+
+  return mandanten.length > 0;
 }
 
 // ===== JOB BADGE =====
@@ -183,24 +179,51 @@ async function init() {
   } catch { /* Auth nicht verfügbar – unkritisch */ }
 
   // Setup-Overlay oder Hauptlayout zeigen
-  const hatMandanten = await ladeUndRendereMandanten();
+  let hatMandanten;
+  try {
+    hatMandanten = await ladeUndRendereMandanten();
+  } catch (err) {
+    // Transient server/network error – show retry instead of setup form so that
+    // existing users don't get prompted to create a tenant they already have.
+    console.error('[App] Mandanten laden fehlgeschlagen:', err);
+    const container = document.getElementById('view-container');
+    if (container) container.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">⚠️</div>
+        <p>Verbindung fehlgeschlagen. Bitte neu laden.</p>
+        <button class="btn btn-primary" onclick="location.reload()">Neu laden</button>
+      </div>`;
+    return;
+  }
 
   if (!hatMandanten) {
-    // Ersten Mandanten anlegen
+    // Echte Erstanmeldung ohne Mandanten
     const overlay = document.getElementById('setup-overlay');
     if (overlay) overlay.classList.remove('hidden');
 
-    document.getElementById('setup-btn')?.addEventListener('click', async () => {
-      const name = document.getElementById('setup-tenant-name')?.value?.trim();
-      if (!name) return;
+    const setupBtn   = document.getElementById('setup-btn');
+    const setupInput = document.getElementById('setup-tenant-name');
+
+    setupBtn?.addEventListener('click', async () => {
+      const name = setupInput?.value?.trim();
+      if (!name) {
+        // Sichtbares Feedback statt lautlosem Abbruch
+        setupInput?.focus();
+        if (setupInput) setupInput.style.borderColor = 'var(--danger, #e53e3e)';
+        return;
+      }
+      setupBtn.disabled = true;
       try {
         await api.createTenant({ name });
-        overlay.classList.add('hidden');
-        await ladeUndRendereMandanten();
-        navigiere('dashboard');
+        // Voll neu laden: nav-listener und restlicher init-Code werden korrekt gesetzt
+        location.reload();
       } catch (err) {
+        setupBtn.disabled = false;
         zeigeToast(`Fehler: ${err.message}`, 'error');
       }
+    });
+    setupInput?.addEventListener('input', () => {
+      if (setupInput.style.borderColor) setupInput.style.borderColor = '';
     });
     return;
   }
