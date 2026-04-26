@@ -41,23 +41,42 @@ function showLoginOverlay() {
   const status = overlay.querySelector('#_oauth_status');
 
   btn.addEventListener('click', () => {
-    window.open('/oauth2/sign_in?rd=' + encodeURIComponent(location.origin + '/'), '_blank');
+    const signInUrl = '/oauth2/sign_in?rd=' + encodeURIComponent(location.origin + '/');
+    const loginWindow = window.open(signInUrl, '_blank');
+
     btn.disabled = true;
     btn.style.opacity = '0.5';
     status.textContent = 'Warte auf Anmeldung …';
 
-    const timer = setInterval(async () => {
+    if (!loginWindow) {
+      // Popup blocked (e.g. desktop browser) – fall back to full-page redirect
+      location.href = signInUrl;
+      return;
+    }
+
+    const timer = setInterval(() => {
+      // User closed the sheet manually before finishing login
+      if (loginWindow.closed) {
+        clearInterval(timer);
+        _loginOverlayActive = false;
+        overlay.remove();
+        location.reload();
+        return;
+      }
       try {
-        const res = await fetch('/api/me', { credentials: 'include' });
-        const ct = res.headers.get('content-type') || '';
-        if (res.ok && ct.includes('application/json')) {
+        // Throws when child is at an external domain (IdP); succeeds when OAuth
+        // redirect has brought it back to our origin → login complete.
+        if (loginWindow.location.origin === location.origin) {
           clearInterval(timer);
+          loginWindow.close();
           _loginOverlayActive = false;
           overlay.remove();
           location.reload();
         }
-      } catch {}
-    }, 2500);
+      } catch {
+        // Still at external IdP – keep watching
+      }
+    }, 500);
   });
 
   return new Promise(() => {}); // never resolves – caller halts
