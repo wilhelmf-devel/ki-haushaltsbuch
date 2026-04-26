@@ -55,26 +55,45 @@ function showLoginOverlay() {
     }
 
     const timer = setInterval(() => {
-      // User closed the sheet manually before finishing login
-      if (loginWindow.closed) {
-        clearInterval(timer);
-        _loginOverlayActive = false;
-        overlay.remove();
-        location.reload();
-        return;
-      }
+      // OAuth redirect brought the tab back to our origin → login complete.
       try {
-        // Throws when child is at an external domain (IdP); succeeds when OAuth
-        // redirect has brought it back to our origin → login complete.
         if (loginWindow.location.origin === location.origin) {
           clearInterval(timer);
           loginWindow.close();
           _loginOverlayActive = false;
           overlay.remove();
           location.reload();
+          return;
         }
       } catch {
         // Still at external IdP – keep watching
+      }
+
+      // User closed the tab manually (possibly mid-flow). Don't reload immediately;
+      // poll /api/me briefly so that any in-flight OAuth callback can finish first.
+      if (loginWindow.closed) {
+        clearInterval(timer);
+        let attempts = 0;
+        const poll = setInterval(async () => {
+          attempts++;
+          try {
+            const res = await fetch('/api/me', { credentials: 'include' });
+            if (res.ok && (res.headers.get('content-type') || '').includes('application/json')) {
+              clearInterval(poll);
+              _loginOverlayActive = false;
+              overlay.remove();
+              location.reload();
+              return;
+            }
+          } catch {}
+          if (attempts >= 8) {
+            // Auth didn't arrive in ~4s – let the user try again
+            clearInterval(poll);
+            btn.disabled = false;
+            btn.style.opacity = '';
+            status.textContent = 'Anmeldung nicht erkannt. Bitte erneut versuchen.';
+          }
+        }, 500);
       }
     }, 500);
   });
