@@ -73,7 +73,7 @@ async function ladeView() {
       }
       case 'receipts': {
         const { renderReceipts } = await import('./views/receipts.js');
-        await renderReceipts(container, tenantId);
+        await renderReceipts(container, tenantId, aktiverViewParams);
         break;
       }
       case 'receipt-detail': {

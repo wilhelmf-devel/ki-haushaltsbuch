@@ -27,15 +27,18 @@ function statusLabel(r) {
   return { cls: r.ocr_status || 'done', label: STATUS_LABELS[r.ocr_status] || '' };
 }
 
-export async function renderReceipts(container, tenantId) {
+let savedState = null;
+
+export async function renderReceipts(container, tenantId, params = {}) {
   if (!tenantId) {
     container.innerHTML = '<div class="empty-state"><div class="empty-icon">⚠️</div><p>Bitte wähle einen Mandanten aus.</p></div>';
     return;
   }
 
   const heute = new Date();
-  let monatState = { jahr: heute.getFullYear(), m: heute.getMonth() }; // 0-indexed
-  let datumModus = 'monat'; // 'monat' | 'alle' | 'zeitraum'
+  const restore = params.restoreState && savedState;
+  let monatState = restore ? { ...savedState.monatState } : { jahr: heute.getFullYear(), m: heute.getMonth() };
+  let datumModus = restore ? savedState.datumModus : 'monat';
 
   function monatStart(j, m) {
     return `${j}-${String(m + 1).padStart(2, '0')}-01`;
@@ -48,12 +51,13 @@ export async function renderReceipts(container, tenantId) {
     return new Date(j, m, 1).toLocaleDateString('de-DE', { month: 'long', year: 'numeric' });
   }
 
-  let filter = {
+  let filter = restore ? { ...savedState.filter, tenant_id: tenantId } : {
     tenant_id: tenantId,
     limit: 50,
     offset: 0,
     from: monatStart(monatState.jahr, monatState.m),
     to:   monatEnde(monatState.jahr, monatState.m),
+    sort_by: 'receipt_date',
   };
 
   let alleKategorien = [];
@@ -89,6 +93,10 @@ export async function renderReceipts(container, tenantId) {
         <option value="fuel">⛽ Tankstelle</option>
         <option value="restaurant">🍽️ Restaurant</option>
         <option value="other">📄 Sonstiges</option>
+      </select>
+      <select class="filter-select" id="filter-sort">
+        <option value="receipt_date">nach Belegdatum</option>
+        <option value="created_at">nach Hochgeladen</option>
       </select>
     </div>
 
@@ -214,6 +222,17 @@ export async function renderReceipts(container, tenantId) {
     ladeUndRendere();
   });
 
+  // Restore sort selection if coming back from detail
+  if (filter.sort_by) {
+    document.getElementById('filter-sort').value = filter.sort_by;
+  }
+
+  document.getElementById('filter-sort').addEventListener('change', (e) => {
+    filter.sort_by = e.target.value || 'receipt_date';
+    filter.offset = 0;
+    ladeUndRendere();
+  });
+
   document.getElementById('load-more-btn')?.addEventListener('click', () => {
     filter.offset += 50;
     ladeUndRendere(true);
@@ -250,7 +269,10 @@ export async function renderReceipts(container, tenantId) {
             <div class="receipt-status status-${statusLabel(r).cls}">${statusLabel(r).label}</div>
           </div>
         `;
-        karte.addEventListener('click', () => navigiere('receipt-detail', { id: r.id }));
+        karte.addEventListener('click', () => {
+          savedState = { filter: { ...filter }, monatState: { ...monatState }, datumModus };
+          navigiere('receipt-detail', { id: r.id });
+        });
         liste.appendChild(karte);
       }
 

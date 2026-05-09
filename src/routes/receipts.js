@@ -9,9 +9,13 @@ const db = require('../db');
 
 // Liste aller Belege (mit Filtern)
 router.get('/', (req, res) => {
-  const { tenant_id, from, to, type, category_id, search, limit = 50, offset = 0 } = req.query;
+  const { tenant_id, from, to, type, category_id, search, limit = 50, offset = 0, sort_by } = req.query;
 
   if (!tenant_id) return res.status(400).json({ error: 'tenant_id erforderlich' });
+
+  const sortByCreated = sort_by === 'created_at';
+  const dateCol = sortByCreated ? "DATE(r.created_at)" : "r.receipt_date";
+  const orderCol = sortByCreated ? "r.created_at" : "r.receipt_date";
 
   let sql = `
     SELECT DISTINCT r.*,
@@ -23,8 +27,8 @@ router.get('/', (req, res) => {
   `;
   const params = [tenant_id];
 
-  if (from) { sql += ' AND r.receipt_date >= ?'; params.push(from); }
-  if (to)   { sql += ' AND r.receipt_date <= ?'; params.push(to); }
+  if (from) { sql += ` AND ${dateCol} >= ?`; params.push(from); }
+  if (to)   { sql += ` AND ${dateCol} <= ?`; params.push(to); }
   if (type) { sql += ' AND r.receipt_type = ?'; params.push(type); }
   if (search) {
     sql += ` AND (r.store_name LIKE ? OR EXISTS (
@@ -39,7 +43,7 @@ router.get('/', (req, res) => {
     params.push(category_id);
   }
 
-  sql += ' ORDER BY r.receipt_date DESC, r.id DESC';
+  sql += ` ORDER BY ${orderCol} DESC, r.id DESC`;
   sql += ' LIMIT ? OFFSET ?';
   params.push(parseInt(limit), parseInt(offset));
 
@@ -48,8 +52,8 @@ router.get('/', (req, res) => {
   // Gesamtanzahl für Pagination
   let countSql = `SELECT COUNT(DISTINCT r.id) as total FROM receipts r WHERE r.tenant_id = ?`;
   const countParams = [tenant_id];
-  if (from) { countSql += ' AND r.receipt_date >= ?'; countParams.push(from); }
-  if (to)   { countSql += ' AND r.receipt_date <= ?'; countParams.push(to); }
+  if (from) { countSql += ` AND ${dateCol} >= ?`; countParams.push(from); }
+  if (to)   { countSql += ` AND ${dateCol} <= ?`; countParams.push(to); }
   if (type) { countSql += ' AND r.receipt_type = ?'; countParams.push(type); }
   const { total } = db.prepare(countSql).get(...countParams);
 

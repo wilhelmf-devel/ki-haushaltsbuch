@@ -229,7 +229,7 @@ export async function renderReceiptDetail(container, tenantId, params = {}) {
     aktualisiereItemsKarte(receipt.items);
 
     // Event-Listener Header
-    document.getElementById('back-btn').addEventListener('click', () => navigiere('receipts'));
+    document.getElementById('back-btn').addEventListener('click', () => navigiere('receipts', { restoreState: true }));
 
     if (receipt.image_path && !receipt.image_path.toLowerCase().endsWith('.pdf')) {
       document.getElementById('receipt-image').addEventListener('click', () => {
