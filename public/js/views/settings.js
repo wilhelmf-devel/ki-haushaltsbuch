@@ -7,13 +7,14 @@ import { zeigeToast, navigiere } from '../app.js';
 // Verfügbare Modelle pro Provider
 const MODELLE = {
   gemini: [
-    { value: 'gemini-2.5-flash-lite',         label: 'Gemini 2.5 Flash-Lite (Standard – schnell & günstig)' },
-    { value: 'gemini-2.5-flash',              label: 'Gemini 2.5 Flash (höhere Qualität)' },
-    { value: 'gemini-3.1-flash-lite-preview', label: 'Gemini 3.1 Flash-Lite Preview (neuestes Modell)' },
+    { value: 'gemini-2.5-flash-lite',   label: 'Gemini 2.5 Flash-Lite (günstig)' },
+    { value: 'gemini-2.5-flash',        label: 'Gemini 2.5 Flash (ausgewogen)' },
+    { value: 'gemini-3.1-flash-lite',   label: 'Gemini 3.1 Flash-Lite (Standard – aktuell & günstig)' },
+    { value: 'gemini-3.1-flash-preview', label: 'Gemini 3.1 Flash Preview (neueste Generation)' },
   ],
   claude: [
-    { value: 'claude-haiku-4-5-20251001', label: 'Claude Haiku 4.5 (schnell & günstig)' },
-    { value: 'claude-sonnet-4-6',         label: 'Claude Sonnet 4.6 (besser, etwas teurer)' },
+    { value: 'claude-haiku-4-5',  label: 'Claude Haiku 4.5 (schnell & günstig)' },
+    { value: 'claude-sonnet-4-6', label: 'Claude Sonnet 4.6 (besser, etwas teurer)' },
   ],
   openai: [
     { value: 'gpt-5.4-mini', label: 'GPT-5.4 Mini (Standard)' },
