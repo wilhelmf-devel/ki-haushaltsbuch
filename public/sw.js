@@ -3,7 +3,7 @@
 
 // Bump CACHE_VERSION bei jedem Deploy um Cache-Refresh zu erzwingen.
 // Automatisch via: scripts/deploy-bump.sh
-const CACHE_VERSION = 'v3';
+const CACHE_VERSION = 'v202607012214';
 const CACHE_NAME = `ki-haushaltsbuch-${CACHE_VERSION}`;
 
 const APP_SHELL = [
@@ -54,6 +54,11 @@ self.addEventListener('message', (event) => {
 
 // Fetch-Handler
 self.addEventListener('fetch', (event) => {
+  // Nicht-GET-Requests (z.B. Multipart-Upload) nicht abfangen: WebKit liest
+  // den Body von event.request beim erneuten fetch() manchmal nicht vollständig
+  // aus ("Unexpected end of form" auf dem Server) – Browser soll sie nativ senden.
+  if (event.request.method !== 'GET') return;
+
   const url = new URL(event.request.url);
 
   // API-Calls: Network-First
