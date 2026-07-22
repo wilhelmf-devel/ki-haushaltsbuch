@@ -239,15 +239,44 @@ export async function renderReceiptDetail(container, tenantId, params = {}) {
 
     document.getElementById('save-edit-btn').addEventListener('click', async () => {
       try {
+        const neuerBetrag = parseFloat(document.getElementById('edit-betrag').value) || 0;
+        const alterBetrag = receipt.total_amount ?? 0;
+        const differenz = +(neuerBetrag - alterBetrag).toFixed(2);
+
+        // Trinkgeld-Angebot: Positionen passten bisher zur Summe und der Betrag
+        // wird erhöht → Differenz kommt sehr wahrscheinlich vom Trinkgeld.
+        const positionenPassten = !receipt.sum_mismatch && (receipt.items?.length > 0);
+        const trinkgeldMoeglich = positionenPassten && differenz > 0;
+
         await api.updateReceipt(id, {
           receipt_date: document.getElementById('edit-datum').value,
           store_name: document.getElementById('edit-geschaeft').value || null,
           notes: document.getElementById('edit-notiz').value || null,
-          total_amount: parseFloat(document.getElementById('edit-betrag').value) || 0,
+          total_amount: neuerBetrag,
         });
+
+        let trinkgeldEingetragen = false;
+        if (trinkgeldMoeglich &&
+            confirm(`Summe um ${differenz.toFixed(2)} € erhöht. Differenz als Trinkgeld-Position eintragen?`)) {
+          const trinkgeldKat = kategorien.find(k => k.name === 'Trinkgeld');
+          await api.addReceiptItem(id, {
+            description: 'Trinkgeld',
+            quantity: 1,
+            unit_price: differenz,
+            total_price: differenz,
+            category_id: trinkgeldKat ? trinkgeldKat.id : null,
+          });
+          trinkgeldEingetragen = true;
+        }
+
         const fresh = await api.getReceipt(id);
+        // Lokalen Zustand aktualisieren, damit ein erneutes Speichern korrekt rechnet
+        receipt.total_amount = fresh.total_amount;
+        receipt.items = fresh.items;
+        receipt.sum_mismatch = fresh.sum_mismatch;
+        aktualisiereItemsKarte(fresh.items);
         aktualisiereMismatchBanner(fresh);
-        zeigeToast('Gespeichert!', 'success');
+        zeigeToast(trinkgeldEingetragen ? 'Gespeichert – Trinkgeld eingetragen' : 'Gespeichert!', 'success');
       } catch (err) {
         zeigeToast(`Fehler: ${err.message}`, 'error');
       }

@@ -3,7 +3,7 @@
 
 // Bump CACHE_VERSION bei jedem Deploy um Cache-Refresh zu erzwingen.
 // Automatisch via: scripts/deploy-bump.sh
-const CACHE_VERSION = 'v202607012214';
+const CACHE_VERSION = 'v202607221137';
 const CACHE_NAME = `ki-haushaltsbuch-${CACHE_VERSION}`;
 
 const APP_SHELL = [
