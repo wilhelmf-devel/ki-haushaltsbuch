@@ -33,8 +33,8 @@ Three providers are supported. The active provider is set via `AI_PROVIDER` (env
 
 | Provider | Default model | Notes |
 |---|---|---|
-| **Gemini** (default) | `gemini-2.5-flash-lite` | Fastest and cheapest for receipt OCR. Also available: `gemini-2.5-flash` (higher quality), `gemini-3.1-flash-lite-preview` (latest). |
-| **Claude** | `claude-haiku-4-5-20251001` | Anthropic fallback. Also available: `claude-sonnet-4-6` (higher quality). |
+| **Gemini** (default) | `gemini-3.1-flash-lite` | Fastest and cheapest for receipt OCR. Also available: `gemini-2.5-flash-lite`/`gemini-2.5-flash` (older gen), `gemini-3.5-flash-lite` (newer, ~20-67% pricier), `gemini-3.6-flash` (best quality, most expensive). |
+| **Claude** | `claude-haiku-4-5` | Anthropic fallback. Also available: `claude-sonnet-4-6`, `claude-sonnet-5` (higher quality). |
 | **OpenAI** | `gpt-5.4-mini` | Fast and cheap. Also available: `gpt-5.4-nano` (simpler receipts). |
 
 Model selection: `env` > `settings` DB > hardcoded default. Each provider has its own model setting
@@ -238,8 +238,8 @@ When `user_tenants` is empty but tenants already exist, the first admin to log i
 | `GEMINI_API_KEY` | Google AI Studio API key | — |
 | `ANTHROPIC_API_KEY` | Anthropic API key | — |
 | `OPENAI_API_KEY` | OpenAI API key | — |
-| `GEMINI_MODEL` | Override Gemini model | `gemini-2.5-flash-lite` |
-| `CLAUDE_MODEL` | Override Claude model | `claude-haiku-4-5-20251001` |
+| `GEMINI_MODEL` | Override Gemini model | `gemini-3.1-flash-lite` |
+| `CLAUDE_MODEL` | Override Claude model | `claude-haiku-4-5` |
 | `OPENAI_MODEL` | Override OpenAI model | `gpt-5.4-mini` |
 | `PORT` | HTTP port | `3000` |
 | `TZ` | Timezone | `Europe/Berlin` |
