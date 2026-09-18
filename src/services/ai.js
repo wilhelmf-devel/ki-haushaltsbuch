@@ -165,10 +165,12 @@ Return ONLY valid JSON array, no markdown.
 
 Categories: ${JSON.stringify(kategorien.map(k => k.name))}
 
-Items to categorize:
+Items to categorize (each carries a unique "i"):
 ${JSON.stringify(items)}
 
-Return: [{"description": "...", "category": "..."}]
+Return: [{"i": 0, "category": "..."}]
+Return exactly one entry per input item, echoing its "i" unchanged.
+Two items may have the identical description - never merge or skip them.
 Each item must be assigned exactly one category from the list.`;
 
   if (provider === 'claude' && keys.claude) {

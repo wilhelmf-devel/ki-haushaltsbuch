@@ -151,9 +151,9 @@ async function verarbeiteKategorisierungsJob(job) {
 
   if (kategorien.length === 0) return;
 
-  // KI aufrufen
-  const beschreibungen = items.map(i => i.description);
-  const zuordnungen = await kategorisiere(beschreibungen, kategorien);
+  // KI aufrufen – mit Index, damit identische Beschreibungen unterscheidbar bleiben
+  const eingabe = items.map((item, i) => ({ i, description: item.description }));
+  const zuordnungen = await kategorisiere(eingabe, kategorien);
 
   // Kategorie-Map aufbauen
   const katMap = {};
@@ -168,13 +168,29 @@ async function verarbeiteKategorisierungsJob(job) {
   const update = db.prepare(`
     UPDATE receipt_items SET category_id = ? WHERE id = ?
   `);
-  const updateTx = db.transaction(() => {
-    for (const zuordnung of zuordnungen) {
-      const item = items.find(i => i.description === zuordnung.description);
-      if (!item) continue;
-      const katId = katMap[zuordnung.category?.toLowerCase()] || sonstigesId;
-      update.run(katId, item.id);
+  // Antworten aufschlüsseln: primär über den Index, sekundär über die Beschreibung
+  // (falls die KI den Index ignoriert oder identische Zeilen zusammenfasst)
+  const perIndex = new Map();
+  const perBeschreibung = new Map();
+  for (const zuordnung of Array.isArray(zuordnungen) ? zuordnungen : []) {
+    if (!zuordnung || zuordnung.category == null) continue;
+    const idx = Number(zuordnung.i);
+    if (Number.isInteger(idx) && idx >= 0 && idx < items.length) {
+      perIndex.set(idx, zuordnung.category);
     }
+    if (zuordnung.description && !perBeschreibung.has(zuordnung.description)) {
+      perBeschreibung.set(zuordnung.description, zuordnung.category);
+    }
+  }
+
+  const updateTx = db.transaction(() => {
+    items.forEach((item, idx) => {
+      // Identische Beschreibungen gehören in dieselbe Kategorie – der Rückfall
+      // auf die Beschreibung ist deshalb korrekt und nicht geraten
+      const katName = perIndex.get(idx) ?? perBeschreibung.get(item.description);
+      if (katName == null) return;  // von der KI ausgelassen – bleibt für einen erneuten Lauf offen
+      update.run(katMap[String(katName).toLowerCase()] || sonstigesId, item.id);
+    });
   });
   updateTx();
 }
