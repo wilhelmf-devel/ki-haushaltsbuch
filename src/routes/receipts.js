@@ -17,7 +17,7 @@ router.get('/', (req, res) => {
   const dateCol = sortByCreated ? "DATE(r.created_at)" : "r.receipt_date";
   const orderCol = sortByCreated ? "r.created_at" : "r.receipt_date";
 
-  let sql = `
+  const sql = `
     SELECT DISTINCT r.*,
       (SELECT COUNT(*) FROM receipt_items WHERE receipt_id = r.id) AS item_count,
       (SELECT COUNT(*) FROM receipt_items
@@ -25,37 +25,38 @@ router.get('/', (req, res) => {
     FROM receipts r
     WHERE r.tenant_id = ?
   `;
-  const params = [tenant_id];
+  // Filter einmal bauen und für Liste UND Zählung verwenden. Vorher fehlten
+  // search/category_id in der Zählung – die Gesamtzahl war bei aktiver Suche
+  // zu hoch und "Mehr laden" erschien, obwohl nichts mehr nachkam.
+  const bedingungen = [];
+  const filterParams = [];
 
-  if (from) { sql += ` AND ${dateCol} >= ?`; params.push(from); }
-  if (to)   { sql += ` AND ${dateCol} <= ?`; params.push(to); }
-  if (type) { sql += ' AND r.receipt_type = ?'; params.push(type); }
+  if (from) { bedingungen.push(`${dateCol} >= ?`); filterParams.push(from); }
+  if (to)   { bedingungen.push(`${dateCol} <= ?`); filterParams.push(to); }
+  if (type) { bedingungen.push('r.receipt_type = ?'); filterParams.push(type); }
   if (search) {
-    sql += ` AND (r.store_name LIKE ? OR EXISTS (
+    bedingungen.push(`(r.store_name LIKE ? OR EXISTS (
       SELECT 1 FROM receipt_items ri WHERE ri.receipt_id = r.id AND ri.description LIKE ?
-    ))`;
-    params.push(`%${search}%`, `%${search}%`);
+    ))`);
+    filterParams.push(`%${search}%`, `%${search}%`);
   }
   if (category_id) {
-    sql += ` AND EXISTS (
+    bedingungen.push(`EXISTS (
       SELECT 1 FROM receipt_items ri WHERE ri.receipt_id = r.id AND ri.category_id = ?
-    )`;
-    params.push(category_id);
+    )`);
+    filterParams.push(category_id);
   }
 
-  sql += ` ORDER BY ${orderCol} DESC, r.id DESC`;
-  sql += ' LIMIT ? OFFSET ?';
-  params.push(parseInt(limit), parseInt(offset));
+  const wo = bedingungen.length ? ' AND ' + bedingungen.join(' AND ') : '';
 
-  const receipts = db.prepare(sql).all(...params);
+  const receipts = db.prepare(
+    `${sql}${wo} ORDER BY ${orderCol} DESC, r.id DESC LIMIT ? OFFSET ?`
+  ).all(tenant_id, ...filterParams, parseInt(limit), parseInt(offset));
 
   // Gesamtanzahl für Pagination
-  let countSql = `SELECT COUNT(DISTINCT r.id) as total FROM receipts r WHERE r.tenant_id = ?`;
-  const countParams = [tenant_id];
-  if (from) { countSql += ` AND ${dateCol} >= ?`; countParams.push(from); }
-  if (to)   { countSql += ` AND ${dateCol} <= ?`; countParams.push(to); }
-  if (type) { countSql += ' AND r.receipt_type = ?'; countParams.push(type); }
-  const { total } = db.prepare(countSql).get(...countParams);
+  const { total } = db.prepare(
+    `SELECT COUNT(DISTINCT r.id) as total FROM receipts r WHERE r.tenant_id = ?${wo}`
+  ).get(tenant_id, ...filterParams);
 
   res.json({ receipts, total });
 });

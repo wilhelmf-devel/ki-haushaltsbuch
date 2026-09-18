@@ -55,7 +55,14 @@
         <span class="nav-label">Übersicht</span>
       </button>
       <button class="nav-item nav-capture" data-view="capture" aria-label="Erfassen">
-        <span class="nav-icon">➕</span>
+        <!-- SVG statt ➕-Emoji: das Emoji war im Dark Mode fast unsichtbar,
+             currentColor/Fläche machen die Primäraktion in beiden Themes sichtbar -->
+        <span class="nav-icon nav-icon-plus" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none"
+               stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+            <path d="M12 5v14M5 12h14"/>
+          </svg>
+        </span>
         <span class="nav-label">Erfassen</span>
       </button>
       <button class="nav-item" data-view="receipts" aria-label="Belege">
@@ -74,7 +81,11 @@
 
   <!-- Bild-Viewer Modal -->
   <div id="image-viewer" class="image-viewer hidden" role="dialog" aria-label="Bild-Vollansicht">
-    <button class="image-viewer-close" id="image-viewer-close" aria-label="Schließen">✕</button>
+    <div class="image-viewer-actions">
+      <a class="image-viewer-btn" id="image-viewer-download" download
+         title="Bild speichern" aria-label="Bild speichern">⬇</a>
+      <button class="image-viewer-btn" id="image-viewer-close" aria-label="Schließen">✕</button>
+    </div>
     <img id="image-viewer-img" alt="Beleg-Bild" draggable="false">
   </div>
 

@@ -21,6 +21,21 @@ export async function renderReceiptDetail(container, tenantId, params = {}) {
     });
 
     const typLabels = { itemized: 'Kassenbon', fuel: 'Tankquittung', restaurant: 'Restaurantrechnung', other: 'Sonstiges' };
+    const statusLabels = {
+      pending:    'wartet auf Analyse',
+      processing: 'wird analysiert',
+      done:       'analysiert',
+      failed:     'Analyse fehlgeschlagen',
+      skipped:    'manuell erfasst',
+    };
+
+    const istPdf = (receipt.image_path || '').toLowerCase().endsWith('.pdf');
+    const dateiUrl = receipt.image_path ? api.getImageUrl(receipt.image_path) : null;
+    // Sprechender Dateiname beim Speichern statt "1773950484515.jpg"
+    const endung = (receipt.image_path || '').split('.').pop() || 'jpg';
+    const dateiName = `Beleg-${(receipt.receipt_date || '').slice(0, 10)}`
+      + (receipt.store_name ? `-${receipt.store_name.replace(/[^\w\-]+/g, '_').slice(0, 40)}` : '')
+      + `.${endung}`;
 
     container.innerHTML = `
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
@@ -37,20 +52,21 @@ export async function renderReceiptDetail(container, tenantId, params = {}) {
         ` : ''}
       </div>
 
-      <!-- Bild/PDF Vorschau -->
-      ${receipt.image_path ? `
-        <div style="margin-bottom:12px;position:relative">
-          ${receipt.image_path.toLowerCase().endsWith('.pdf') ? `
-            <a href="${api.getImageUrl(receipt.image_path)}" download
-               class="btn btn-secondary btn-sm" style="display:inline-flex;align-items:center;gap:6px">
-              ⬇ PDF herunterladen
-            </a>
+      <!-- Beleg-Datei: Bild oder PDF direkt anzeigen, nicht nur zum Download anbieten -->
+      ${dateiUrl ? `
+        <div class="beleg-datei">
+          ${istPdf ? `
+            <iframe class="beleg-pdf" src="${dateiUrl}#toolbar=0&view=FitH"
+              title="Beleg-PDF" loading="lazy"></iframe>
           ` : `
-            <img src="${api.getImageUrl(receipt.image_path)}"
-              alt="Beleg-Bild"
-              style="width:100%;max-height:200px;object-fit:contain;border-radius:var(--radius);cursor:pointer;background:var(--bg)"
-              id="receipt-image">
+            <img src="${dateiUrl}" alt="Beleg-Bild" id="receipt-image" class="beleg-bild">
           `}
+          <div class="beleg-datei-aktionen">
+            ${istPdf
+              ? `<a href="${dateiUrl}" target="_blank" rel="noopener" class="btn btn-secondary btn-sm">↗ Vollbild</a>`
+              : `<button type="button" class="btn btn-secondary btn-sm" id="bild-vollbild-btn">↗ Vollbild</button>`}
+            <a href="${dateiUrl}" download="${dateiName}" class="btn btn-secondary btn-sm">⬇ Speichern</a>
+          </div>
         </div>
       ` : ''}
 
@@ -77,7 +93,7 @@ export async function renderReceiptDetail(container, tenantId, params = {}) {
           </div>
           <div class="form-group" style="justify-content:flex-end">
             <span style="font-size:0.8rem;color:var(--text-secondary);align-self:flex-end;padding-bottom:8px">
-              ${typLabels[receipt.receipt_type] || receipt.receipt_type} · ${receipt.ocr_status || 'unbekannt'}
+              ${typLabels[receipt.receipt_type] || receipt.receipt_type} · ${statusLabels[receipt.ocr_status] || 'Status unbekannt'}
             </span>
           </div>
         </div>
@@ -231,10 +247,22 @@ export async function renderReceiptDetail(container, tenantId, params = {}) {
     // Event-Listener Header
     document.getElementById('back-btn').addEventListener('click', () => navigiere('receipts', { restoreState: true }));
 
-    if (receipt.image_path && !receipt.image_path.toLowerCase().endsWith('.pdf')) {
-      document.getElementById('receipt-image').addEventListener('click', () => {
-        zeigeBild(api.getImageUrl(receipt.image_path));
-      });
+    if (dateiUrl && !istPdf) {
+      const oeffneVollbild = () => zeigeBild(dateiUrl, dateiName);
+      const bild = document.getElementById('receipt-image');
+      bild?.addEventListener('click', oeffneVollbild);
+      document.getElementById('bild-vollbild-btn')?.addEventListener('click', oeffneVollbild);
+
+      // Fehlende Datei nicht als kaputtes Bild-Icon zeigen
+      const zeigeFehlend = () => {
+        const hinweis = document.createElement('div');
+        hinweis.className = 'beleg-fehlt';
+        hinweis.textContent = '🖼️ Bilddatei nicht gefunden';
+        bild.replaceWith(hinweis);
+        document.querySelector('.beleg-datei-aktionen')?.classList.add('hidden');
+      };
+      bild?.addEventListener('error', zeigeFehlend);
+      if (bild?.complete && bild.naturalWidth === 0) zeigeFehlend();
     }
 
     document.getElementById('save-edit-btn').addEventListener('click', async () => {
@@ -313,38 +341,37 @@ function renderItemZeile(item, kategorien) {
     <option value="${k.id}" ${k.id === item.category_id ? 'selected' : ''}>${k.icon || ''} ${k.name}</option>
   `).join('');
 
+  // Zwei Zeilen: oben Bezeichnung + Betrag über die volle Breite, darunter
+  // Kategorie und Aktionen. Einzeilig blieben auf dem Handy nur ~16px für die
+  // Bezeichnung übrig, weil Select, Betrag und zwei Buttons die Zeile füllten.
   return `
-    <div class="item-row-wrap" style="border-top:1px solid var(--border);padding:8px 0">
+    <div class="item-row-wrap">
       <!-- Normale Ansicht -->
-      <div class="item-view" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
-        <div style="flex:1;min-width:0">
-          <div style="font-size:0.9rem;font-weight:500">
-            ${item.quantity !== 1 ? `${item.quantity}x ` : ''}${item.description}
+      <div class="item-view">
+        <div class="item-kopf">
+          <div class="item-text">
+            <div class="item-bezeichnung">${item.quantity !== 1 ? `${item.quantity}x ` : ''}${item.description}</div>
+            ${item.quantity !== 1 ? `<div class="item-einzelpreis">${(item.unit_price ?? 0).toFixed(2)}€/Stk</div>` : ''}
           </div>
-          ${item.quantity !== 1 ? `<div style="font-size:0.75rem;color:var(--text-secondary)">${(item.unit_price ?? 0).toFixed(2)}€/Stk</div>` : ''}
+          <span class="item-betrag">${(item.total_price ?? 0).toFixed(2)}€</span>
         </div>
-        <select class="item-cat-select" data-item-id="${item.id}"
-          style="flex:1;min-width:120px;padding:5px 7px;border:1px solid var(--border);border-radius:6px;background:var(--bg-input);color:var(--text);font-size:0.8rem">
-          <option value="">Unkategorisiert</option>
-          ${katOptionen}
-        </select>
-        <span style="font-weight:600;white-space:nowrap;min-width:55px;text-align:right">${(item.total_price ?? 0).toFixed(2)}€</span>
-        <button class="item-edit-btn btn btn-ghost btn-sm btn-icon" title="Bearbeiten" style="padding:4px 6px">✏️</button>
-        <button class="item-del-btn btn btn-ghost btn-sm btn-icon" data-item-id="${item.id}" title="Löschen" style="padding:4px 6px;color:var(--danger)">🗑️</button>
+        <div class="item-aktionen">
+          <select class="item-cat-select" data-item-id="${item.id}" aria-label="Kategorie">
+            <option value="">Unkategorisiert</option>
+            ${katOptionen}
+          </select>
+          <button class="item-edit-btn btn btn-ghost btn-icon" title="Bearbeiten" aria-label="Position bearbeiten">✏️</button>
+          <button class="item-del-btn btn btn-ghost btn-icon item-del" data-item-id="${item.id}" title="Löschen" aria-label="Position löschen">🗑️</button>
+        </div>
       </div>
       <!-- Edit-Formular (versteckt) -->
-      <div class="item-edit hidden" style="padding-top:6px">
-        <div style="margin-bottom:6px">
-          <input class="edit-desc" value="${item.description.replace(/"/g, '&quot;')}" placeholder="Beschreibung"
-            style="width:100%;box-sizing:border-box;padding:6px;border:1px solid var(--border);border-radius:6px;background:var(--bg-input);color:var(--text);font-size:0.85rem">
+      <div class="item-edit hidden">
+        <input class="edit-desc item-edit-input" value="${item.description.replace(/"/g, '&quot;')}" placeholder="Beschreibung">
+        <div class="item-edit-zeile">
+          <input class="edit-qty item-edit-input" type="number" step="0.001" value="${item.quantity ?? 1}" placeholder="Menge" aria-label="Menge">
+          <input class="edit-up item-edit-input" type="number" step="0.01" value="${(item.unit_price ?? 0).toFixed(2)}" placeholder="Preis/Stk" aria-label="Preis pro Stück">
         </div>
-        <div style="display:flex;gap:6px;margin-bottom:6px">
-          <input class="edit-qty" type="number" step="0.001" value="${item.quantity ?? 1}" placeholder="Menge"
-            style="width:70px;padding:6px;border:1px solid var(--border);border-radius:6px;background:var(--bg-input);color:var(--text);font-size:0.85rem">
-          <input class="edit-up" type="number" step="0.01" value="${(item.unit_price ?? 0).toFixed(2)}" placeholder="Preis/Stk"
-            style="flex:1;padding:6px;border:1px solid var(--border);border-radius:6px;background:var(--bg-input);color:var(--text);font-size:0.85rem">
-        </div>
-        <div style="display:flex;gap:6px">
+        <div class="item-edit-zeile">
           <button class="item-save-btn btn btn-primary btn-sm" data-item-id="${item.id}">💾 Speichern</button>
           <button class="item-cancel-btn btn btn-secondary btn-sm">Abbrechen</button>
         </div>

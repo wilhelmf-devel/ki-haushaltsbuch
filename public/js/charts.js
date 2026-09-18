@@ -1,16 +1,39 @@
-// Chart.js Wrapper – Diagramme für Dashboard
+// Diagramme für Dashboard – schlankes Canvas-2D-Rendering, kein CDN, kein Bundler
 'use strict';
 
-// Chart.js wird über ein minimales Inline-Bundle bereitgestellt (CDN-frei).
-// Wir laden es lazy aus dem Public-Verzeichnis.
+// Innenbreite des Elternelements (Content-Box, ohne Padding).
+// clientWidth enthält das Padding – ohne Abzug läuft das Canvas aus der Karte heraus.
+function innenBreite(canvas, fallback) {
+  const eltern = canvas.parentElement;
+  if (!eltern) return fallback;
+  const stil = getComputedStyle(eltern);
+  const breite = eltern.clientWidth
+    - parseFloat(stil.paddingLeft || 0)
+    - parseFloat(stil.paddingRight || 0);
+  return breite > 0 ? breite : fallback;
+}
 
-let Chart = null;
+// Canvas für HiDPI-Displays vorbereiten.
+// Die Pixelpuffer-Größe ist cssMaß * dpr, gezeichnet wird danach aber in
+// CSS-Pixeln – deshalb setTransform(dpr,…) und NICHT canvas.width als
+// Koordinatenraum verwenden. Genau das war vorher die Fehlerquelle: auf
+// Retina-Displays (dpr 2) wurde alles doppelt so groß gezeichnet und nur
+// das linke obere Viertel war sichtbar.
+function bereiteCanvasVor(canvas, cssBreite, cssHoehe) {
+  const dpr = window.devicePixelRatio || 1;
+  const breite = Math.max(1, Math.round(cssBreite));
+  const hoehe = Math.max(1, Math.round(cssHoehe));
 
-async function ladeChartJS() {
-  if (Chart) return Chart;
-  // Dynamischer Import von chart.js via fetch + eval (kein CDN, kein Bundler)
-  // Stattdessen nutzen wir ein schlankes Canvas-2D-Rendering
-  return null;
+  canvas.width = Math.round(breite * dpr);
+  canvas.height = Math.round(hoehe * dpr);
+  canvas.style.width = `${breite}px`;
+  canvas.style.height = `${hoehe}px`;
+
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0); // absolut, daher auch beim Neuzeichnen korrekt
+  ctx.clearRect(0, 0, breite, hoehe);
+
+  return { ctx, breite, hoehe };
 }
 
 // Hilfsfunktion: Hex-Farbe mit Transparenz
@@ -25,13 +48,12 @@ function hexMitAlpha(hex, alpha) {
 export function zeichneKuchendiagramm(canvas, daten) {
   if (!canvas || !daten || daten.length === 0) return null;
 
-  const ctx = canvas.getContext('2d');
-  const breite = canvas.width;
-  const hoehe = canvas.height;
-  ctx.clearRect(0, 0, breite, hoehe);
-
   const total = daten.reduce((s, d) => s + d.summe, 0);
   if (total === 0) return null;
+
+  const { ctx, breite, hoehe } = bereiteCanvasVor(
+    canvas, Math.min(280, innenBreite(canvas, 280)), 200
+  );
 
   const cx = breite / 2;
   const cy = hoehe / 2;
@@ -66,10 +88,7 @@ export function zeichneKuchendiagramm(canvas, daten) {
 export function zeichneBalkendiagramm(canvas, daten) {
   if (!canvas || !daten || daten.length === 0) return null;
 
-  const ctx = canvas.getContext('2d');
-  const breite = canvas.width;
-  const hoehe = canvas.height;
-  ctx.clearRect(0, 0, breite, hoehe);
+  const { ctx, breite, hoehe } = bereiteCanvasVor(canvas, innenBreite(canvas, 360), 200);
 
   const padding = { top: 16, right: 12, bottom: 40, left: 50 };
   const plotBreite = breite - padding.left - padding.right;
@@ -100,6 +119,10 @@ export function zeichneBalkendiagramm(canvas, daten) {
     ctx.fillText(`${val}€`, padding.left - 4, y + 4);
   }
 
+  // Beschriftungen ausdünnen, damit sie auf schmalen Displays nicht überlappen.
+  // "09/26" braucht rund 34px inkl. Abstand.
+  const labelSchritt = Math.max(1, Math.ceil(34 / balkenAbstand));
+
   // Balken
   daten.forEach((d, i) => {
     const x = padding.left + i * balkenAbstand + (balkenAbstand - balkenBreite) / 2;
@@ -111,7 +134,9 @@ export function zeichneBalkendiagramm(canvas, daten) {
     ctx.roundRect(x, y, balkenBreite, balkenHoehe, [4, 4, 0, 0]);
     ctx.fill();
 
-    // X-Achsen-Labels
+    // X-Achsen-Labels – vom letzten Monat aus zählen, damit der aktuelle
+    // Monat immer beschriftet ist
+    if ((daten.length - 1 - i) % labelSchritt !== 0) return;
     const [jahr, monat] = d.monat.split('-');
     const label = `${monat}/${jahr.slice(2)}`;
     ctx.fillStyle = textSecondary;

@@ -581,22 +581,31 @@ body {
   border-radius: var(--radius-sm);
 }
 
-.image-viewer-close {
+.image-viewer-actions {
   position: absolute;
   top: 16px;
   right: 16px;
+  display: flex;
+  gap: 10px;
+  z-index: 1;
+}
+
+.image-viewer-btn {
   background: rgba(255,255,255,0.2);
   border: none;
   color: white;
   font-size: 1.2rem;
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
+  text-decoration: none;
 }
+
+.image-viewer-btn:active { background: rgba(255,255,255,0.35); }
 
 /* ===== SETUP OVERLAY ===== */
 
@@ -715,10 +724,32 @@ input[type="color"] {
   margin-bottom: 10px;
 }
 
+/* Tap-Targets mindestens 44px – vorher 36px und damit unter der Empfehlung */
 .monat-nav .btn-icon {
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
+  min-height: 44px;
   font-size: 1.3rem;
+  flex-shrink: 0;
+}
+
+.monat-nav .btn-sm {
+  min-height: 44px;
+  flex-shrink: 0;
+}
+
+/* Eigener Zeitraum (ausklappbar) */
+.custom-range {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.custom-range.hidden { display: none !important; }
+
+.range-trenner {
+  color: var(--text-secondary);
   flex-shrink: 0;
 }
 
@@ -841,4 +872,174 @@ input[type="color"] {
 
 .key-hint:hover {
   text-decoration: underline;
+}
+
+/* ===== NAV: PRIMÄRAKTION ===== */
+/* Das ➕-Emoji war im Dark Mode kaum sichtbar und hob die Hauptaktion nicht
+   hervor. Gefüllter Kreis + SVG in currentColor löst beides. */
+
+.nav-icon-plus {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: #fff;
+}
+
+.nav-item.active .nav-icon-plus { background: var(--primary-dark); }
+.nav-capture:active .nav-icon-plus { background: var(--primary-dark); }
+
+/* ===== LEERE ANSICHTEN MIT AUSWEG ===== */
+
+.empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 16px;
+}
+
+/* ===== SUMME DER BELEGLISTE ===== */
+
+.listen-summe {
+  display: flex;
+  justify-content: flex-end;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  padding: 0 4px 8px;
+}
+
+.listen-summe.hidden { display: none !important; }
+
+/* ===== BELEG-DATEI (BILD / PDF) ===== */
+
+.beleg-datei { margin-bottom: 12px; }
+
+.beleg-bild {
+  display: block;
+  width: 100%;
+  max-height: 220px;
+  object-fit: contain;
+  border-radius: var(--radius);
+  background: var(--bg);
+  cursor: pointer;
+}
+
+/* PDFs werden eingebettet statt nur zum Download angeboten */
+.beleg-pdf {
+  display: block;
+  width: 100%;
+  height: 260px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-card);
+}
+
+.beleg-datei-aktionen {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+/* ===== BELEG-POSITIONEN ===== */
+/* Zweizeilig: Bezeichnung darf die volle Breite nutzen. Einzeilig blieben
+   neben Select, Betrag und zwei Buttons nur ~16px für den Text übrig. */
+
+.item-row-wrap {
+  border-top: 1px solid var(--border);
+  padding: 10px 0;
+}
+
+.item-kopf {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.item-text { flex: 1; min-width: 0; }
+
+.item-bezeichnung {
+  font-size: 0.9rem;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.item-einzelpreis {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+.item-betrag {
+  flex-shrink: 0;
+  font-weight: 600;
+  white-space: nowrap;
+  text-align: right;
+}
+
+.item-aktionen {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.item-cat-select {
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-input);
+  color: var(--text);
+  font-size: 0.85rem;
+}
+
+.item-aktionen .btn-icon {
+  width: 44px;
+  min-height: 44px;
+  flex-shrink: 0;
+  font-size: 1rem;
+}
+
+.item-del { color: var(--error); }
+
+.item-edit { padding-top: 8px; }
+
+.item-edit-input {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 44px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-input);
+  color: var(--text);
+  font-size: 0.9rem;
+}
+
+.item-edit-zeile {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.item-edit-zeile .edit-qty { width: 90px; flex-shrink: 0; }
+.item-edit-zeile .edit-up { flex: 1; min-width: 0; }
+
+.beleg-fehlt {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 120px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  background: var(--bg);
 }

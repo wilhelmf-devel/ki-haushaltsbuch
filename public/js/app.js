@@ -44,11 +44,19 @@ export function navigiere(view, params = {}) {
 }
 
 // ===== BILD-VIEWER =====
-export function zeigeBild(url) {
+export function zeigeBild(url, dateiname) {
   const viewer = document.getElementById('image-viewer');
   const img = document.getElementById('image-viewer-img');
   if (!viewer || !img) return;
   img.src = url;
+
+  // Speichern-Link mit sprechendem Dateinamen
+  const download = document.getElementById('image-viewer-download');
+  if (download) {
+    download.href = url;
+    download.setAttribute('download', dateiname || 'beleg');
+  }
+
   viewer.classList.remove('hidden');
 }
 
@@ -262,7 +270,9 @@ async function init() {
   window.addEventListener('popstate', () => {
     const { view, params } = leseHashRoute();
     aktiverView = view;
-    aktiverViewParams = params;
+    // Zurück-Geste soll die gemerkten Filter genauso wiederherstellen wie
+    // der "← Zurück"-Button in der Detailansicht
+    aktiverViewParams = { ...params, restoreState: true };
     document.querySelectorAll('.nav-item').forEach(btn => {
       btn.classList.toggle('active', btn.dataset.view === view);
     });

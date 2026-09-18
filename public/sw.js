@@ -14,6 +14,8 @@ const APP_SHELL = [
   '/js/api.js',
   '/js/offline.js',
   '/js/charts.js',
+  '/js/period.js',
+  '/js/zeitraum-nav.js',
   '/js/views/dashboard.js',
   '/js/views/capture.js',
   '/js/views/receipts.js',
