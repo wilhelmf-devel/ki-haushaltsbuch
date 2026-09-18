@@ -56,28 +56,38 @@ html {
   scroll-behavior: smooth;
 }
 
+html, body {
+  height: 100%;
+  /* Das Dokument selbst scrollt nie – sonst können Kopf- und Fußleiste auf iOS
+     stranden, sobald sich der visuelle Viewport vom Layout-Viewport löst
+     (Tastatur, Pinch-Zoom, Rubber-Band). Gescrollt wird nur .view-container. */
+  overflow: hidden;
+}
+
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   background-color: var(--bg);
   color: var(--text);
-  min-height: 100vh;
   overscroll-behavior: none;
 }
 
 /* ===== LAYOUT ===== */
+/* App-Shell: feste Höhe, Kopf und Navigation sind normale Flex-Geschwister
+   der scrollenden Mitte – kein position:fixed/sticky mehr nötig. */
 
 #app {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  height: 100vh;
+  height: 100dvh; /* iOS: folgt der dynamischen Viewport-Höhe */
   max-width: 600px;
   margin: 0 auto;
   position: relative;
+  overflow: hidden;
 }
 
 .app-header {
-  position: sticky;
-  top: 0;
+  flex-shrink: 0;
   z-index: 100;
   height: var(--header-height);
   background: var(--primary);
@@ -110,21 +120,18 @@ body {
 }
 
 .view-container {
-  flex: 1;
+  flex: 1 1 auto;
+  min-height: 0; /* ohne dies wächst der Flex-Item statt zu scrollen */
   padding: 16px;
-  padding-bottom: calc(var(--nav-height) + 16px);
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
 }
 
 /* ===== BOTTOM NAVIGATION ===== */
 
 .bottom-nav {
-  position: fixed;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 100%;
-  max-width: 600px;
+  flex-shrink: 0;
   height: var(--nav-height);
   background: var(--bg-card);
   border-top: 1px solid var(--border);
@@ -803,13 +810,12 @@ input[type="color"] {
 
 /* ===== SAFE AREA (iPhone Notch) ===== */
 
+/* Die Navigation ist jetzt ein Geschwister der scrollenden Mitte und verdeckt
+   nichts mehr – der .view-container braucht keinen Platzhalter darunter. */
 @supports (padding-bottom: env(safe-area-inset-bottom)) {
   .bottom-nav {
     padding-bottom: env(safe-area-inset-bottom);
     height: calc(var(--nav-height) + env(safe-area-inset-bottom));
-  }
-  .view-container {
-    padding-bottom: calc(var(--nav-height) + env(safe-area-inset-bottom) + 16px);
   }
 }
 
