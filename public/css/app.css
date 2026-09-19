@@ -28,6 +28,18 @@
   --radius: 12px;
   --radius-sm: 8px;
   --radius-lg: 16px;
+
+  /* Safe Areas als Variablen: Fallback 0px für Browser ohne env(), und
+     zum Prüfen des Layouts lokal überschreibbar. */
+  --safe-top: 0px;
+  --safe-bottom: 0px;
+}
+
+@supports (padding-top: env(safe-area-inset-top)) {
+  :root {
+    --safe-top: env(safe-area-inset-top);
+    --safe-bottom: env(safe-area-inset-bottom);
+  }
 }
 
 @media (prefers-color-scheme: dark) {
@@ -64,15 +76,17 @@ html, body {
   overflow: hidden;
 }
 
-/* iOS malt die Safe Area über der Statusleiste in der Canvas-Farbe. Ohne
-   eigenen Hintergrund auf html erbt der Canvas den von body (--bg) und der
-   Streifen mit Uhr und Notch wird hellgrau bzw. schwarz statt blau. body ist
-   100% hoch und deckt den sichtbaren Bereich vollständig ab, dieses Blau ist
-   also nur außerhalb des Viewports zu sehen.
+/* Rückfallebene für den Fall, dass viewport-fit=cover nicht greift: dann liegt
+   die Safe Area außerhalb der Seite und iOS malt sie selbst. Ältere Versionen
+   nehmen dafür die Canvas-Farbe – die erbt der Canvas sonst von body (--bg),
+   was den Streifen mit Uhr und Notch hellgrau bzw. schwarz statt blau macht.
+   iOS 27 ignoriert den Canvas allerdings, deshalb füllt die .app-header die
+   Fläche zusätzlich selbst.
 
-   Die Fläche am unteren Rand (Home-Indicator) verhält sich anders: die leitet
-   iOS vom Inhalt darüber ab, nicht vom Canvas. Sie folgt also von selbst der
-   .bottom-nav und bleibt von dieser Regel unberührt – auf dem Gerät geprüft. */
+   body ist 100% hoch und deckt den sichtbaren Bereich vollständig ab, dieses
+   Blau ist also ausschließlich außerhalb des Viewports zu sehen. Die Fläche am
+   Home-Indicator bleibt davon unberührt – die leitet iOS vom Inhalt darüber
+   ab, nicht vom Canvas (auf dem Gerät geprüft). */
 html {
   background-color: var(--primary);
 }
@@ -102,13 +116,17 @@ body {
 .app-header {
   flex-shrink: 0;
   z-index: 100;
-  height: var(--header-height);
+  /* Wächst in die Statusleisten-Fläche hinein und füllt sie mit ihrem
+     eigenen Blau – unabhängig davon, welche Farbe iOS dort sonst wählen würde */
+  height: calc(var(--header-height) + var(--safe-top));
+  padding-top: var(--safe-top);
   background: var(--primary);
   color: var(--text-on-primary);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 16px;
+  padding-left: 16px;
+  padding-right: 16px;
   box-shadow: var(--shadow);
 }
 
@@ -145,7 +163,9 @@ body {
 
 .bottom-nav {
   flex-shrink: 0;
-  height: var(--nav-height);
+  /* Analog nach unten: füllt die Home-Indicator-Fläche mit der Leistenfarbe */
+  height: calc(var(--nav-height) + var(--safe-bottom));
+  padding-bottom: var(--safe-bottom);
   background: var(--bg-card);
   border-top: 1px solid var(--border);
   display: flex;
@@ -550,7 +570,7 @@ body {
 
 #toast-container {
   position: fixed;
-  top: 70px;
+  top: calc(var(--safe-top) + 70px);
   right: 16px;
   z-index: 9999;
   display: flex;
@@ -603,7 +623,7 @@ body {
 
 .image-viewer-actions {
   position: absolute;
-  top: 16px;
+  top: calc(var(--safe-top) + 16px);
   right: 16px;
   display: flex;
   gap: 10px;
@@ -638,6 +658,8 @@ body {
   align-items: center;
   justify-content: center;
   padding: 24px;
+  padding-top: calc(var(--safe-top) + 24px);
+  padding-bottom: calc(var(--safe-bottom) + 24px);
 }
 
 .setup-overlay.hidden { display: none; }
@@ -823,14 +845,10 @@ input[type="color"] {
 
 /* ===== SAFE AREA (iPhone Notch) ===== */
 
-/* Die Navigation ist jetzt ein Geschwister der scrollenden Mitte und verdeckt
-   nichts mehr – der .view-container braucht keinen Platzhalter darunter. */
-@supports (padding-bottom: env(safe-area-inset-bottom)) {
-  .bottom-nav {
-    padding-bottom: env(safe-area-inset-bottom);
-    height: calc(var(--nav-height) + env(safe-area-inset-bottom));
-  }
-}
+/* Safe Areas werden über --safe-top/--safe-bottom direkt in .app-header und
+   .bottom-nav eingerechnet – hier ist dafür nichts mehr nötig. Die Navigation
+   ist ein Geschwister der scrollenden Mitte und verdeckt nichts, der
+   .view-container braucht also auch keinen Platzhalter darunter. */
 
 /* ===== KI-EINSTELLUNGEN PROVIDER SECTIONS ===== */
 
