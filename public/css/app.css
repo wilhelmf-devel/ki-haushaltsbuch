@@ -28,18 +28,6 @@
   --radius: 12px;
   --radius-sm: 8px;
   --radius-lg: 16px;
-
-  /* Safe Areas als Variablen: Fallback 0px für Browser ohne env(), und
-     zum Prüfen des Layouts lokal überschreibbar. */
-  --safe-top: 0px;
-  --safe-bottom: 0px;
-}
-
-@supports (padding-top: env(safe-area-inset-top)) {
-  :root {
-    --safe-top: env(safe-area-inset-top);
-    --safe-bottom: env(safe-area-inset-bottom);
-  }
 }
 
 @media (prefers-color-scheme: dark) {
@@ -76,21 +64,6 @@ html, body {
   overflow: hidden;
 }
 
-/* Rückfallebene für den Fall, dass viewport-fit=cover nicht greift: dann liegt
-   die Safe Area außerhalb der Seite und iOS malt sie selbst. Ältere Versionen
-   nehmen dafür die Canvas-Farbe – die erbt der Canvas sonst von body (--bg),
-   was den Streifen mit Uhr und Notch hellgrau bzw. schwarz statt blau macht.
-   iOS 27 ignoriert den Canvas allerdings, deshalb füllt die .app-header die
-   Fläche zusätzlich selbst.
-
-   body ist 100% hoch und deckt den sichtbaren Bereich vollständig ab, dieses
-   Blau ist also ausschließlich außerhalb des Viewports zu sehen. Die Fläche am
-   Home-Indicator bleibt davon unberührt – die leitet iOS vom Inhalt darüber
-   ab, nicht vom Canvas (auf dem Gerät geprüft). */
-html {
-  background-color: var(--primary);
-}
-
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   background-color: var(--bg);
@@ -99,8 +72,10 @@ body {
 }
 
 /* ===== LAYOUT ===== */
-/* App-Shell: feste Höhe, Kopf und Navigation sind normale Flex-Geschwister
-   der scrollenden Mitte – kein position:fixed/sticky mehr nötig. */
+/* App-Shell: feste Höhe, Kopf und Navigation sind Flex-Geschwister der
+   scrollenden Mitte. Fürs Layout hält sie das Flexbox-Gerüst an Ort und
+   Stelle; das sticky an .app-header bleibt nur wegen der Statusleistenfarbe
+   (Begründung dort). */
 
 #app {
   display: flex;
@@ -114,19 +89,25 @@ body {
 }
 
 .app-header {
+  /* sticky wird fürs Layout nicht mehr gebraucht (die App-Shell scrollt nicht),
+     ist aber nötig für die Farbe der iOS-Statusleiste: Safari 26+ ignoriert
+     <meta name="theme-color"> und nimmt den Hintergrund des Elements am oberen
+     Rand des Viewports. Gewertet wird dabei nur ein fixiertes/klebendes
+     Element – ohne das fällt Safari auf den body-Hintergrund zurück und der
+     Streifen mit Uhr und Notch wird hellgrau bzw. schwarz statt blau.
+     Die bekannte Schwäche des Tricks (bricht, wenn die Seite gescrollt neu
+     geladen wird) greift hier nicht: die Kopfzeile steht immer ganz oben. */
+  position: sticky;
+  top: 0;
   flex-shrink: 0;
   z-index: 100;
-  /* Wächst in die Statusleisten-Fläche hinein und füllt sie mit ihrem
-     eigenen Blau – unabhängig davon, welche Farbe iOS dort sonst wählen würde */
-  height: calc(var(--header-height) + var(--safe-top));
-  padding-top: var(--safe-top);
+  height: var(--header-height);
   background: var(--primary);
   color: var(--text-on-primary);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-left: 16px;
-  padding-right: 16px;
+  padding: 0 16px;
   box-shadow: var(--shadow);
 }
 
@@ -163,9 +144,7 @@ body {
 
 .bottom-nav {
   flex-shrink: 0;
-  /* Analog nach unten: füllt die Home-Indicator-Fläche mit der Leistenfarbe */
-  height: calc(var(--nav-height) + var(--safe-bottom));
-  padding-bottom: var(--safe-bottom);
+  height: var(--nav-height);
   background: var(--bg-card);
   border-top: 1px solid var(--border);
   display: flex;
@@ -570,7 +549,7 @@ body {
 
 #toast-container {
   position: fixed;
-  top: calc(var(--safe-top) + 70px);
+  top: 70px;
   right: 16px;
   z-index: 9999;
   display: flex;
@@ -623,7 +602,7 @@ body {
 
 .image-viewer-actions {
   position: absolute;
-  top: calc(var(--safe-top) + 16px);
+  top: 16px;
   right: 16px;
   display: flex;
   gap: 10px;
@@ -658,8 +637,6 @@ body {
   align-items: center;
   justify-content: center;
   padding: 24px;
-  padding-top: calc(var(--safe-top) + 24px);
-  padding-bottom: calc(var(--safe-bottom) + 24px);
 }
 
 .setup-overlay.hidden { display: none; }
@@ -845,10 +822,14 @@ input[type="color"] {
 
 /* ===== SAFE AREA (iPhone Notch) ===== */
 
-/* Safe Areas werden über --safe-top/--safe-bottom direkt in .app-header und
-   .bottom-nav eingerechnet – hier ist dafür nichts mehr nötig. Die Navigation
-   ist ein Geschwister der scrollenden Mitte und verdeckt nichts, der
-   .view-container braucht also auch keinen Platzhalter darunter. */
+/* Die Navigation ist ein Geschwister der scrollenden Mitte und verdeckt
+   nichts – der .view-container braucht keinen Platzhalter darunter. */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .bottom-nav {
+    padding-bottom: env(safe-area-inset-bottom);
+    height: calc(var(--nav-height) + env(safe-area-inset-bottom));
+  }
+}
 
 /* ===== KI-EINSTELLUNGEN PROVIDER SECTIONS ===== */
 
