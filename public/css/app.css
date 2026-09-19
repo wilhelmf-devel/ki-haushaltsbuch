@@ -68,7 +68,11 @@ html, body {
    eigenen Hintergrund auf html erbt der Canvas den von body (--bg) und der
    Streifen mit Uhr und Notch wird hellgrau bzw. schwarz statt blau. body ist
    100% hoch und deckt den sichtbaren Bereich vollständig ab, dieses Blau ist
-   also nur außerhalb des Viewports zu sehen. */
+   also nur außerhalb des Viewports zu sehen.
+
+   Die Fläche am unteren Rand (Home-Indicator) verhält sich anders: die leitet
+   iOS vom Inhalt darüber ab, nicht vom Canvas. Sie folgt also von selbst der
+   .bottom-nav und bleibt von dieser Regel unberührt – auf dem Gerät geprüft. */
 html {
   background-color: var(--primary);
 }
