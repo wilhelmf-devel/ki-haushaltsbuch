@@ -64,6 +64,15 @@ html, body {
   overflow: hidden;
 }
 
+/* iOS malt die Safe Area über der Statusleiste in der Canvas-Farbe. Ohne
+   eigenen Hintergrund auf html erbt der Canvas den von body (--bg) und der
+   Streifen mit Uhr und Notch wird hellgrau bzw. schwarz statt blau. body ist
+   100% hoch und deckt den sichtbaren Bereich vollständig ab, dieses Blau ist
+   also nur außerhalb des Viewports zu sehen. */
+html {
+  background-color: var(--primary);
+}
+
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   background-color: var(--bg);
