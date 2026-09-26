@@ -340,10 +340,29 @@ body {
   resize: vertical;
 }
 
+/* iOS Safari gibt Datumsfeldern eine eigene Mindestbreite/-höhe – ohne das
+   Zurücksetzen ragen sie aus ihrer Grid-Spalte und sind höher als Textfelder */
+.form-group input[type="date"] {
+  -webkit-appearance: none;
+  appearance: none;
+  min-width: 0;
+  height: 48px;
+  line-height: normal;
+}
+
+.form-group input[type="date"]::-webkit-date-and-time-value {
+  text-align: left;
+  margin: 0;
+}
+
 .form-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
+}
+
+.form-row > * {
+  min-width: 0;
 }
 
 /* ===== TABS ===== */
