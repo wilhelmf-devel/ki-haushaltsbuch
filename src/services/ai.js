@@ -29,15 +29,15 @@ function getModels() {
     const db = require('../db');
     const get = (key) => db.prepare('SELECT value FROM settings WHERE key = ?').get(key);
     return {
-      gemini: process.env.GEMINI_MODEL || get('gemini_model')?.value || 'gemini-3.1-flash-lite',
-      claude: process.env.CLAUDE_MODEL  || get('claude_model')?.value  || 'claude-haiku-4-5',
-      openai: process.env.OPENAI_MODEL  || get('openai_model')?.value  || 'gpt-5.6-luna',
+      gemini: process.env.GEMINI_MODEL || get('gemini_model')?.value || 'gemini-3.5-flash-lite',
+      claude: process.env.CLAUDE_MODEL  || get('claude_model')?.value  || 'claude-haiku-5-5',
+      openai: process.env.OPENAI_MODEL  || get('openai_model')?.value  || 'gpt-6-luna',
     };
   } catch {
     return {
-      gemini: process.env.GEMINI_MODEL || 'gemini-3.1-flash-lite',
-      claude: process.env.CLAUDE_MODEL  || 'claude-haiku-4-5',
-      openai: process.env.OPENAI_MODEL  || 'gpt-5.6-luna',
+      gemini: process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite',
+      claude: process.env.CLAUDE_MODEL  || 'claude-haiku-5-5',
+      openai: process.env.OPENAI_MODEL  || 'gpt-6-luna',
     };
   }
 }
@@ -116,7 +116,7 @@ async function ocrMitClaude(apiKey, model, base64, mimeType, prompt) {
 
   const response = await client.messages.create({
     model,
-    max_tokens: 4096,
+    max_tokens: 16000,
     messages: [
       {
         role: 'user',
@@ -128,8 +128,7 @@ async function ocrMitClaude(apiKey, model, base64, mimeType, prompt) {
     ],
   });
 
-  const text = response.content[0].text;
-  return parseJsonAntwort(text);
+  return parseJsonAntwort(claudeText(response));
 }
 
 async function ocrMitOpenAI(apiKey, model, base64, mimeType, prompt) {
@@ -200,12 +199,11 @@ async function kategorisiereMitClaude(apiKey, model, prompt) {
 
   const response = await client.messages.create({
     model,
-    max_tokens: 2048,
+    max_tokens: 16000,
     messages: [{ role: 'user', content: prompt }],
   });
 
-  const text = response.content[0].text;
-  return parseJsonAntwort(text);
+  return parseJsonAntwort(claudeText(response));
 }
 
 async function kategorisiereMitOpenAI(apiKey, model, prompt) {
@@ -220,6 +218,16 @@ async function kategorisiereMitOpenAI(apiKey, model, prompt) {
 
   const text = response.choices[0].message.content;
   return parseJsonAntwort(text);
+}
+
+// Text aus einer Claude-Antwort holen. Neuere Modelle denken standardmäßig
+// (adaptive thinking) – dann steht vor dem Text ein Thinking-Block, content[0] ist kein Text.
+// max_tokens zählt das Denken mit, daher großzügig gesetzt.
+function claudeText(response) {
+  if (response.stop_reason === 'refusal') throw new Error('Claude hat die Anfrage abgelehnt.');
+  const text = response.content.filter(b => b.type === 'text').map(b => b.text).join('');
+  if (!text) throw new Error(`Keine Textantwort von Claude (stop_reason: ${response.stop_reason}).`);
+  return text;
 }
 
 // JSON aus KI-Antwort extrahieren (entfernt mögliche Markdown-Codeblöcke)

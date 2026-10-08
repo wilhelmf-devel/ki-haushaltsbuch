@@ -33,9 +33,9 @@ Three providers are supported. The active provider is set via `AI_PROVIDER` (env
 
 | Provider | Default model | Notes |
 |---|---|---|
-| **Gemini** (default) | `gemini-3.1-flash-lite` | Cheapest current-gen model for receipt OCR. Also available: `gemini-2.5-flash-lite` (older gen, cheapest), `gemini-3.5-flash-lite` (newer, ~20-67% pricier), `gemini-3.8-flash` (best quality; promo pricing ends 2026-12-31, then doubles). |
-| **Claude** | `claude-haiku-4-5` | Anthropic fallback. Also available: `claude-sonnet-5` (higher quality). Watch out: Anthropic's retirement commitment for Haiku 4.5 only runs to 2026-10-15 — successor in the same price class is unclear, `claude-sonnet-5` is the fallback. |
-| **OpenAI** | `gpt-5.6-luna` | Fast and cheap. Also available: `gpt-5.6-terra` (higher quality, ~10x the price). |
+| **Gemini** (default) | `gemini-3.5-flash-lite` | Cheap current-gen model for receipt OCR, free-tier eligible. Also available: `gemini-3.8-flash` (best quality; promo pricing ends 2026-12-31, then doubles). Not offered: `gemini-3.1-flash-lite` (shutdown announced, earliest 2027-05-07), 2.5 family (access limited to existing users). |
+| **Claude** | `claude-haiku-5-5` | Anthropic fallback ($0.10/$0.50 per MTok for prompts <100k). Also available: `claude-sonnet-5-5` (higher quality). Haiku 5.5 / Sonnet 5.x think by default — responses start with a thinking block, so read the text block, never `content[0]`. |
+| **OpenAI** | `gpt-6-luna` | Fast and cheap. Also available: `gpt-6.1-sol` (higher quality, ~20x the price). |
 
 Model selection: `env` > `settings` DB > hardcoded default. Each provider has its own model setting
 (`GEMINI_MODEL`, `CLAUDE_MODEL`, `OPENAI_MODEL`) so switching providers doesn't reset the model choice.
@@ -238,9 +238,9 @@ When `user_tenants` is empty but tenants already exist, the first admin to log i
 | `GEMINI_API_KEY` | Google AI Studio API key | — |
 | `ANTHROPIC_API_KEY` | Anthropic API key | — |
 | `OPENAI_API_KEY` | OpenAI API key | — |
-| `GEMINI_MODEL` | Override Gemini model | `gemini-3.1-flash-lite` |
-| `CLAUDE_MODEL` | Override Claude model | `claude-haiku-4-5` |
-| `OPENAI_MODEL` | Override OpenAI model | `gpt-5.6-luna` |
+| `GEMINI_MODEL` | Override Gemini model | `gemini-3.5-flash-lite` |
+| `CLAUDE_MODEL` | Override Claude model | `claude-haiku-5-5` |
+| `OPENAI_MODEL` | Override OpenAI model | `gpt-6-luna` |
 | `PORT` | HTTP port | `3000` |
 | `TZ` | Timezone | `Europe/Berlin` |
 | `UPLOAD_MAX_MB` | Max upload file size | `25` |

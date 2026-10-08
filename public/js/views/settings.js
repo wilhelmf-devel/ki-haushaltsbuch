@@ -7,18 +7,16 @@ import { zeigeToast, navigiere } from '../app.js';
 // Verfügbare Modelle pro Provider
 const MODELLE = {
   gemini: [
-    { value: 'gemini-2.5-flash-lite',   label: 'Gemini 2.5 Flash-Lite (alte Generation, am günstigsten)' },
-    { value: 'gemini-3.1-flash-lite',   label: 'Gemini 3.1 Flash-Lite (Standard – günstig & bewährt)' },
-    { value: 'gemini-3.5-flash-lite',   label: 'Gemini 3.5 Flash-Lite (neuer, ~20-67% teurer)' },
-    { value: 'gemini-3.8-flash',        label: 'Gemini 3.8 Flash (neuestes Flash, beste Qualität – ab 2027 doppelter Preis)' },
+    { value: 'gemini-3.5-flash-lite',   label: 'Gemini 3.5 Flash-Lite (Standard – günstig & aktuell)' },
+    { value: 'gemini-3.8-flash',        label: 'Gemini 3.8 Flash (beste Qualität, ~2,5× teurer – ab 2027 doppelter Preis)' },
   ],
   claude: [
-    { value: 'claude-haiku-4-5', label: 'Claude Haiku 4.5 (schnell & günstig)' },
-    { value: 'claude-sonnet-5',  label: 'Claude Sonnet 5 (besser, moderat teurer)' },
+    { value: 'claude-haiku-5-5',  label: 'Claude Haiku 5.5 (Standard – schnell & sehr günstig)' },
+    { value: 'claude-sonnet-5-5', label: 'Claude Sonnet 5.5 (besser, ~20× teurer)' },
   ],
   openai: [
-    { value: 'gpt-5.6-luna',  label: 'GPT-5.6 Luna (Standard – günstig & aktuell)' },
-    { value: 'gpt-5.6-terra', label: 'GPT-5.6 Terra (besser, deutlich teurer)' },
+    { value: 'gpt-6-luna',  label: 'GPT-6 Luna (Standard – schnell & sehr günstig)' },
+    { value: 'gpt-6.1-sol', label: 'GPT-6.1 Sol (besser, ~20× teurer)' },
   ],
 };
 

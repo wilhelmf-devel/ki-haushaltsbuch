@@ -17,7 +17,7 @@ A self-hosted personal budget tracker as a Progressive Web App (PWA). Take a pho
 ## Features
 
 - 📷 **Scan receipts** — photo, PDF, HEIC all supported
-- 🤖 **AI extraction** — Gemini 3.1 Flash-Lite reads store name, date, and every line item
+- 🤖 **AI extraction** — Gemini 3.5 Flash-Lite reads store name, date, and every line item
 - 🏷️ **Auto-categorization** — items are mapped to your category list automatically
 - 📊 **Dashboard** — spending by category (pie chart) and month-over-month (bar chart)
 - ✈️ **Multi-tenant** — separate books for different countries or contexts (e.g. Germany / Spain)
@@ -84,7 +84,7 @@ Get a key at [Google AI Studio](https://aistudio.google.com/) — free tier is s
 ```
 GEMINI_API_KEY=your-key-here
 AI_PROVIDER=gemini
-# Optional: GEMINI_MODEL=gemini-3.1-flash-lite  (default)
+# Optional: GEMINI_MODEL=gemini-3.5-flash-lite  (default)
 ```
 
 ### Claude
@@ -92,7 +92,7 @@ Get a key at [Anthropic Console](https://console.anthropic.com/).
 ```
 ANTHROPIC_API_KEY=your-key-here
 AI_PROVIDER=claude
-# Optional: CLAUDE_MODEL=claude-haiku-4-5  (default)
+# Optional: CLAUDE_MODEL=claude-haiku-5-5  (default)
 ```
 
 ### OpenAI
@@ -100,7 +100,7 @@ Get a key at [OpenAI Platform](https://platform.openai.com/api-keys).
 ```
 OPENAI_API_KEY=your-key-here
 AI_PROVIDER=openai
-# Optional: OPENAI_MODEL=gpt-5.6-luna  (default)
+# Optional: OPENAI_MODEL=gpt-6-luna  (default)
 ```
 
 ## Data persistence
@@ -117,9 +117,9 @@ The SQLite database and uploaded images live in `./data/` on the host (Docker vo
 | `GEMINI_API_KEY` | Google AI Studio key | — |
 | `ANTHROPIC_API_KEY` | Anthropic key | — |
 | `OPENAI_API_KEY` | OpenAI key | — |
-| `GEMINI_MODEL` | Override Gemini model | `gemini-3.1-flash-lite` |
-| `CLAUDE_MODEL` | Override Claude model | `claude-haiku-4-5` |
-| `OPENAI_MODEL` | Override OpenAI model | `gpt-5.6-luna` |
+| `GEMINI_MODEL` | Override Gemini model | `gemini-3.5-flash-lite` |
+| `CLAUDE_MODEL` | Override Claude model | `claude-haiku-5-5` |
+| `OPENAI_MODEL` | Override OpenAI model | `gpt-6-luna` |
 | `AUTH_HEADER` | HTTP header carrying the username (enables auth) | — |
 | `AUTH_ADMINS` | Comma-separated list of admin usernames | — |
 | `PORT` | HTTP port inside container | `3000` |

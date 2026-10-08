@@ -37,9 +37,9 @@ router.get('/', (req, res) => {
     openai_api_key:     openaiSource !== 'none' ? '••••••••' : '',
 
     // Ausgewählte Modelle (env > DB > default)
-    gemini_model: process.env.GEMINI_MODEL || dbMap.gemini_model || 'gemini-3.1-flash-lite',
-    claude_model: process.env.CLAUDE_MODEL  || dbMap.claude_model  || 'claude-haiku-4-5',
-    openai_model: process.env.OPENAI_MODEL  || dbMap.openai_model  || 'gpt-5.6-luna',
+    gemini_model: process.env.GEMINI_MODEL || dbMap.gemini_model || 'gemini-3.5-flash-lite',
+    claude_model: process.env.CLAUDE_MODEL  || dbMap.claude_model  || 'claude-haiku-5-5',
+    openai_model: process.env.OPENAI_MODEL  || dbMap.openai_model  || 'gpt-6-luna',
   });
 });
 
