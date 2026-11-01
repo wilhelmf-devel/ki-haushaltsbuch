@@ -74,6 +74,16 @@ AUTH_ADMINS=alice,bob
 - New users can create their own tenant on first login.
 - **When `AUTH_HEADER` is not set**, the app behaves exactly as before — no access control.
 
+#### Login proxies and the installed PWA
+
+If your proxy uses a login flow with redirects (e.g. oauth2-proxy, Authelia, Authentik in front of an OIDC provider), a few things matter once the app is installed on a phone's home screen:
+
+- **`/api/` must answer `401`/`403` when the session has expired, not redirect to the login page.** `fetch()` follows the redirect to the identity provider, fails on CORS, and the app can only show "Verbindung fehlgeschlagen" ("connection failed"). With a plain `401`/`403` the app shows its own "Sitzung abgelaufen" ("session expired") overlay with a login button. Redirecting page loads (`/`, static files) to the login page is fine. With Traefik, for example, use a separate router for `PathPrefix(/api/)` without the error/redirect middleware.
+- **The login overlay opens `/oauth2/sign_in?rd=<app URL>`** on the app's own host. That path has to reach your login proxy without authentication in front of it. oauth2-proxy serves it as is; with other proxies, add a redirect from that path to your login URL.
+- **Expect parallel logins.** Once the session has expired, background requests (service worker update, `manifest.json`, icons) each hit the proxy and may each start a login flow. Proxies that keep a single CSRF cookie then reject the login with `400`. With oauth2-proxy, set `--cookie-csrf-per-request=true`.
+- **The home-screen app has its own cookie jar on iOS.** Logging in through Safari does not log in the installed app; it has to log in through its own overlay.
+- **Use a long session lifetime** (days, not hours), so the installed app doesn't ask for a login every time it is opened.
+
 ## AI providers
 
 Three providers are supported. Select the active provider in `.env` or in the app under **Settings**.
@@ -131,6 +141,8 @@ The SQLite database and uploaded images live in `./data/` on the host (Docker vo
 
 - **iOS**: Safari → Share → "Add to Home Screen"
 - **Android**: Chrome → Menu → "Install app"
+
+Running behind a login proxy? See [Login proxies and the installed PWA](#login-proxies-and-the-installed-pwa).
 
 ## Architecture overview
 
